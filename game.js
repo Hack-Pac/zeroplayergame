@@ -10,6 +10,8 @@ class GameOfLife {
         this.canvas.height = this.gridHeight * this.cellSize;
         
         this.grid = this.createGrid();
+        this.cellAges = this.createGrid(); // Track age of each cell for fade-in effect
+        this.fadeInDuration = 5; // Number of generations for complete fade-in
         this.running = false;
         this.generation = 0;
         this.speed = 10;
@@ -53,6 +55,8 @@ class GameOfLife {
         
         if (gridX >= 0 && gridX < this.gridWidth && gridY >= 0 && gridY < this.gridHeight) {
             this.grid[gridY][gridX] = this.grid[gridY][gridX] ? 0 : 1;
+            // Reset cell age when toggled
+            this.cellAges[gridY][gridX] = this.grid[gridY][gridX] ? 0 : 0;
             this.draw();
         }
     }
@@ -76,6 +80,7 @@ class GameOfLife {
     
     update() {
         const newGrid = this.createGrid();
+        const newCellAges = this.createGrid();
         
         for (let i = 0; i < this.gridHeight; i++) {
             for (let j = 0; j < this.gridWidth; j++) {
@@ -84,16 +89,21 @@ class GameOfLife {
                 if (this.grid[i][j] === 1) {
                     if (neighbors === 2 || neighbors === 3) {
                         newGrid[i][j] = 1;
+                        // Age existing cells
+                        newCellAges[i][j] = Math.min(this.cellAges[i][j] + 1, this.fadeInDuration);
                     }
                 } else {
                     if (neighbors === 3) {
                         newGrid[i][j] = 1;
+                        // New cells start at age 0
+                        newCellAges[i][j] = 0;
                     }
                 }
             }
         }
         
         this.grid = newGrid;
+        this.cellAges = newCellAges;
         this.generation++;
         this.updateInfo();
     }
@@ -119,10 +129,13 @@ class GameOfLife {
             this.ctx.stroke();
         }
         
-        this.ctx.fillStyle = '#fff';
         for (let i = 0; i < this.gridHeight; i++) {
             for (let j = 0; j < this.gridWidth; j++) {
                 if (this.grid[i][j] === 1) {
+                    // Calculate opacity based on cell age
+                    const opacity = this.cellAges[i][j] / this.fadeInDuration;
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                    
                     this.ctx.fillRect(
                         j * this.cellSize + 1,
                         i * this.cellSize + 1,
@@ -236,6 +249,7 @@ class GameOfLife {
     
     clear() {
         this.grid = this.createGrid();
+        this.cellAges = this.createGrid(); // Reset cell ages
         this.generation = 0;
         this.running = false;
         this.updateInfo();
