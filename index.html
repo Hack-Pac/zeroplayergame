@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conway's Game of Life</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Conway's Game of Life</h1>
+        <div class="info">
+            <span id="generation">Generation: 0</span>
+            <span id="status">Paused</span>
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="controls">
+            <button id="playPauseBtn">Play</button>
+            <button id="clearBtn">Clear</button>
+            <button id="randomBtn">Random</button>
+            
+            <div class="pattern-buttons">
+                <button class="pattern-btn" data-pattern="glider">Glider</button>
+                <button class="pattern-btn" data-pattern="blinker">Blinker</button>
+                <button class="pattern-btn" data-pattern="toad">Toad</button>
+                <button class="pattern-btn" data-pattern="beacon">Beacon</button>
+                <button class="pattern-btn" data-pattern="pulsar">Pulsar</button>
+                <button class="pattern-btn" data-pattern="gosperGliderGun">Glider Gun</button>
+            </div>
+            
+            <div class="speed-control">
+                <label for="speedSlider">Speed:</label>
+                <input type="range" id="speedSlider" min="1" max="20" value="10">
+                <span id="speedValue">10</span>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <p>Click on cells to toggle them. Press play to start the simulation.</p>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
