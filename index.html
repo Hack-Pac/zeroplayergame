@@ -50,6 +50,7 @@
             <button id="playPauseBtn">Play</button>
             <button id="clearBtn">Clear</button>
             <button id="randomBtn">Random</button>
+            <button id="configBtn">Team Config</button>
             
             <div class="pattern-buttons">
                 <button class="pattern-btn" data-pattern="glider">Glider</button>
@@ -74,6 +75,63 @@
         
         <div class="instructions">
             <p>Click on cells to toggle them. Press play to start the simulation.</p>
+        </div>
+    </div>
+    
+    <!-- Team Configuration Modal -->
+    <div id="configModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Team Configuration</h2>
+            
+            <div class="team-selector-modal">
+                <label>Select Team:</label>
+                <select id="configTeamSelect">
+                    <option value="1">Red Team</option>
+                    <option value="2">Blue Team</option>
+                    <option value="3">Green Team</option>
+                    <option value="4">Yellow Team</option>
+                </select>
+            </div>
+            
+            <div class="config-controls">
+                <div class="config-item">
+                    <label for="intelligence">Intelligence</label>
+                    <input type="range" id="intelligence" min="0" max="100" value="50">
+                    <span class="value-display">0.5</span>
+                    <p class="description">How smart the team is at seeking enemies or avoiding threats. Higher values make teams move more strategically.</p>
+                </div>
+                
+                <div class="config-item">
+                    <label for="aggressiveness">Aggressiveness</label>
+                    <input type="range" id="aggressiveness" min="0" max="100" value="50">
+                    <span class="value-display">0.5</span>
+                    <p class="description">How likely the team is to convert enemy cells. Higher values make teams more dominant in conflicts.</p>
+                </div>
+                
+                <div class="config-item">
+                    <label for="fear">Fear Factor</label>
+                    <input type="range" id="fear" min="0" max="100" value="50">
+                    <span class="value-display">0.5</span>
+                    <p class="description">Tendency to avoid larger teams. Higher values make teams more cautious around stronger opponents.</p>
+                </div>
+                
+                <div class="config-item">
+                    <label for="multiplyRate">Multiply Rate</label>
+                    <input type="range" id="multiplyRate" min="50" max="200" value="100">
+                    <span class="value-display">1.0</span>
+                    <p class="description">How fast the team reproduces. Values above 1.0 increase birth rate, below 1.0 decrease it.</p>
+                </div>
+                
+                <div class="config-item">
+                    <label for="herdRate">Herd Rate</label>
+                    <input type="range" id="herdRate" min="0" max="100" value="50">
+                    <span class="value-display">0.5</span>
+                    <p class="description">How closely team cells stick together. Higher values create tighter formations.</p>
+                </div>
+            </div>
+            
+            <button id="applyConfig" class="modal-button">Apply Configuration</button>
         </div>
     </div>
     

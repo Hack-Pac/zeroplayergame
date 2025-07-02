@@ -25,6 +25,38 @@ class GameOfLife {
             3: '#44ff44', // Green
             4: '#ffff44'  // Yellow
         };
+        
+        // Team configuration with default values
+        this.teamConfigs = {
+            1: { // Red team
+                intelligence: 0.5,    // 0-1: How smart the team is at seeking/avoiding
+                aggressiveness: 0.5,  // 0-1: How likely to convert enemy cells
+                fear: 0.5,           // 0-1: Tendency to avoid larger teams
+                multiplyRate: 1.0,   // 0.5-2: Multiplication speed modifier
+                herdRate: 0.5        // 0-1: How closely cells stick together
+            },
+            2: { // Blue team
+                intelligence: 0.5,
+                aggressiveness: 0.5,
+                fear: 0.5,
+                multiplyRate: 1.0,
+                herdRate: 0.5
+            },
+            3: { // Green team
+                intelligence: 0.5,
+                aggressiveness: 0.5,
+                fear: 0.5,
+                multiplyRate: 1.0,
+                herdRate: 0.5
+            },
+            4: { // Yellow team
+                intelligence: 0.5,
+                aggressiveness: 0.5,
+                fear: 0.5,
+                multiplyRate: 1.0,
+                herdRate: 0.5
+            }
+        };
         this.teamMode = false; // Whether team mode is active
         
         this.initializeEventListeners();
@@ -70,6 +102,83 @@ class GameOfLife {
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', () => this.handleMouseUp());
         this.canvas.addEventListener('mouseleave', () => this.handleMouseUp());
+        
+        // Modal controls
+        const configBtn = document.getElementById('configBtn');
+        const modal = document.getElementById('configModal');
+        const closeBtn = document.getElementsByClassName('close')[0];
+        const applyConfigBtn = document.getElementById('applyConfig');
+        const configTeamSelect = document.getElementById('configTeamSelect');
+        
+        configBtn.addEventListener('click', () => {
+            modal.style.display = 'block';
+            this.loadTeamConfig(parseInt(configTeamSelect.value));
+        });
+        
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        configTeamSelect.addEventListener('change', (e) => {
+            this.loadTeamConfig(parseInt(e.target.value));
+        });
+        
+        // Slider event listeners
+        const sliders = ['intelligence', 'aggressiveness', 'fear', 'multiplyRate', 'herdRate'];
+        sliders.forEach(slider => {
+            const input = document.getElementById(slider);
+            const display = input.nextElementSibling;
+            
+            input.addEventListener('input', (e) => {
+                let value = parseInt(e.target.value);
+                let displayValue;
+                
+                if (slider === 'multiplyRate') {
+                    displayValue = (value / 100).toFixed(1);
+                } else {
+                    displayValue = (value / 100).toFixed(2);
+                }
+                
+                display.textContent = displayValue;
+            });
+        });
+        
+        applyConfigBtn.addEventListener('click', () => {
+            this.saveTeamConfig(parseInt(configTeamSelect.value));
+            modal.style.display = 'none';
+        });
+    }
+    
+    loadTeamConfig(teamId) {
+        const config = this.teamConfigs[teamId];
+        document.getElementById('intelligence').value = config.intelligence * 100;
+        document.getElementById('aggressiveness').value = config.aggressiveness * 100;
+        document.getElementById('fear').value = config.fear * 100;
+        document.getElementById('multiplyRate').value = config.multiplyRate * 100;
+        document.getElementById('herdRate').value = config.herdRate * 100;
+        
+        // Update display values
+        document.getElementById('intelligence').nextElementSibling.textContent = config.intelligence.toFixed(2);
+        document.getElementById('aggressiveness').nextElementSibling.textContent = config.aggressiveness.toFixed(2);
+        document.getElementById('fear').nextElementSibling.textContent = config.fear.toFixed(2);
+        document.getElementById('multiplyRate').nextElementSibling.textContent = config.multiplyRate.toFixed(1);
+        document.getElementById('herdRate').nextElementSibling.textContent = config.herdRate.toFixed(2);
+    }
+    
+    saveTeamConfig(teamId) {
+        this.teamConfigs[teamId] = {
+            intelligence: parseInt(document.getElementById('intelligence').value) / 100,
+            aggressiveness: parseInt(document.getElementById('aggressiveness').value) / 100,
+            fear: parseInt(document.getElementById('fear').value) / 100,
+            multiplyRate: parseInt(document.getElementById('multiplyRate').value) / 100,
+            herdRate: parseInt(document.getElementById('herdRate').value) / 100
+        };
     }
     
     handleCanvasClick(event) {
@@ -135,6 +244,22 @@ class GameOfLife {
         const newGrid = this.createGrid();
         const newCellAges = this.createGrid();
         
+        // Calculate team statistics for intelligent behavior
+        let teamSizes = { 1: 0, 2: 0, 3: 0, 4: 0 };
+        let teamPositions = { 1: [], 2: [], 3: [], 4: [] };
+        
+        if (this.teamMode) {
+            for (let i = 0; i < this.gridHeight; i++) {
+                for (let j = 0; j < this.gridWidth; j++) {
+                    const team = this.grid[i][j];
+                    if (team > 0) {
+                        teamSizes[team]++;
+                        teamPositions[team].push({ x: j, y: i });
+                    }
+                }
+            }
+        }
+        
         for (let i = 0; i < this.gridHeight; i++) {
             for (let j = 0; j < this.gridWidth; j++) {
                 const neighborData = this.countNeighbors(i, j);
@@ -143,26 +268,43 @@ class GameOfLife {
                 if (currentTeam > 0) {
                     // Cell is alive
                     if (neighborData.count === 2 || neighborData.count === 3) {
-                        // In team mode, cell might change team based on neighbors
+                        // Apply aggressiveness factor for team conversion
                         if (this.teamMode && neighborData.dominantTeam > 0 && 
-                            neighborData.teamCounts[neighborData.dominantTeam] >= 2) {
-                            newGrid[i][j] = neighborData.dominantTeam;
-                            newCellAges[i][j] = currentTeam === neighborData.dominantTeam ? 
-                                Math.min(this.cellAges[i][j] + 1, this.fadeInDuration) : 0;
+                            neighborData.dominantTeam !== currentTeam) {
+                            
+                            const aggressiveness = this.teamConfigs[neighborData.dominantTeam].aggressiveness;
+                            const threshold = Math.max(1, Math.floor(2 * (1 - aggressiveness) + 1));
+                            
+                            if (neighborData.teamCounts[neighborData.dominantTeam] >= threshold) {
+                                newGrid[i][j] = neighborData.dominantTeam;
+                                newCellAges[i][j] = 0;
+                            } else {
+                                newGrid[i][j] = currentTeam;
+                                newCellAges[i][j] = Math.min(this.cellAges[i][j] + 1, this.fadeInDuration);
+                            }
                         } else {
                             newGrid[i][j] = currentTeam;
                             newCellAges[i][j] = Math.min(this.cellAges[i][j] + 1, this.fadeInDuration);
                         }
                     }
                 } else {
-                    // Cell is dead
-                    if (neighborData.count === 3) {
-                        // New cell takes the dominant team color
-                        newGrid[i][j] = neighborData.dominantTeam || 1;
-                        newCellAges[i][j] = 0;
+                    // Cell is dead - apply multiply rate
+                    if (neighborData.count === 3 && neighborData.dominantTeam > 0) {
+                        const multiplyRate = this.teamConfigs[neighborData.dominantTeam].multiplyRate;
+                        const birthChance = Math.random();
+                        
+                        if (birthChance < multiplyRate) {
+                            newGrid[i][j] = neighborData.dominantTeam;
+                            newCellAges[i][j] = 0;
+                        }
                     }
                 }
             }
+        }
+        
+        // Apply intelligence-based movement for cells at the edge of groups
+        if (this.teamMode) {
+            this.applyIntelligentBehavior(newGrid, teamSizes, teamPositions);
         }
         
         this.grid = newGrid;
@@ -170,6 +312,172 @@ class GameOfLife {
         this.generation++;
         this.updateInfo();
         if (this.teamMode) this.updateTeamStats();
+    }
+    
+    applyIntelligentBehavior(grid, teamSizes, teamPositions) {
+        for (let team = 1; team <= 4; team++) {
+            const config = this.teamConfigs[team];
+            if (config.intelligence === 0) continue;
+            
+            // Find cells at the edge of groups
+            const edgeCells = this.findEdgeCells(team);
+            
+            for (const cell of edgeCells) {
+                const { x, y } = cell;
+                
+                // Calculate direction based on intelligence and other factors
+                const direction = this.calculateIntelligentDirection(
+                    team, x, y, teamSizes, teamPositions, config
+                );
+                
+                if (direction) {
+                    const newX = x + direction.dx;
+                    const newY = y + direction.dy;
+                    
+                    // Check bounds and if target is empty
+                    if (newX >= 0 && newX < this.gridWidth && 
+                        newY >= 0 && newY < this.gridHeight && 
+                        grid[newY][newX] === 0) {
+                        
+                        // Apply herd rate - cells are more likely to move if they maintain group cohesion
+                        const herdChance = this.calculateHerdChance(team, newX, newY, config.herdRate);
+                        
+                        if (Math.random() < herdChance) {
+                            grid[newY][newX] = team;
+                            this.cellAges[newY][newX] = 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    findEdgeCells(team) {
+        const edgeCells = [];
+        
+        for (let i = 0; i < this.gridHeight; i++) {
+            for (let j = 0; j < this.gridWidth; j++) {
+                if (this.grid[i][j] === team) {
+                    // Check if cell is at edge (has at least one empty neighbor)
+                    let hasEmptyNeighbor = false;
+                    
+                    for (let di = -1; di <= 1; di++) {
+                        for (let dj = -1; dj <= 1; dj++) {
+                            if (di === 0 && dj === 0) continue;
+                            
+                            const ni = i + di;
+                            const nj = j + dj;
+                            
+                            if (ni >= 0 && ni < this.gridHeight && 
+                                nj >= 0 && nj < this.gridWidth && 
+                                this.grid[ni][nj] === 0) {
+                                hasEmptyNeighbor = true;
+                                break;
+                            }
+                        }
+                        if (hasEmptyNeighbor) break;
+                    }
+                    
+                    if (hasEmptyNeighbor) {
+                        edgeCells.push({ x: j, y: i });
+                    }
+                }
+            }
+        }
+        
+        return edgeCells;
+    }
+    
+    calculateIntelligentDirection(team, x, y, teamSizes, teamPositions, config) {
+        const directions = [];
+        
+        // Calculate attractions and repulsions
+        for (let otherTeam = 1; otherTeam <= 4; otherTeam++) {
+            if (otherTeam === team) continue;
+            if (teamPositions[otherTeam].length === 0) continue;
+            
+            // Calculate center of mass for other team
+            let centerX = 0, centerY = 0;
+            for (const pos of teamPositions[otherTeam]) {
+                centerX += pos.x;
+                centerY += pos.y;
+            }
+            centerX /= teamPositions[otherTeam].length;
+            centerY /= teamPositions[otherTeam].length;
+            
+            // Calculate direction vector
+            const dx = centerX - x;
+            const dy = centerY - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 0) {
+                // Normalize direction
+                const ndx = dx / distance;
+                const ndy = dy / distance;
+                
+                // Determine if we should approach or avoid
+                let weight = 0;
+                
+                // Fear factor - avoid larger teams
+                if (teamSizes[otherTeam] > teamSizes[team]) {
+                    weight -= config.fear * (teamSizes[otherTeam] / teamSizes[team] - 1);
+                }
+                
+                // Intelligence factor - seek smaller teams
+                if (teamSizes[otherTeam] < teamSizes[team]) {
+                    weight += config.intelligence * (1 - teamSizes[otherTeam] / teamSizes[team]);
+                }
+                
+                // Aggressiveness factor - more likely to approach enemies
+                weight += config.aggressiveness * 0.3;
+                
+                // Distance factor - closer targets are more influential
+                weight *= Math.max(0, 1 - distance / 30);
+                
+                directions.push({ dx: ndx * weight, dy: ndy * weight });
+            }
+        }
+        
+        // Sum all direction vectors
+        let totalDx = 0, totalDy = 0;
+        for (const dir of directions) {
+            totalDx += dir.dx;
+            totalDy += dir.dy;
+        }
+        
+        // Convert to discrete direction
+        if (Math.abs(totalDx) > 0.1 || Math.abs(totalDy) > 0.1) {
+            return {
+                dx: totalDx > 0.1 ? 1 : (totalDx < -0.1 ? -1 : 0),
+                dy: totalDy > 0.1 ? 1 : (totalDy < -0.1 ? -1 : 0)
+            };
+        }
+        
+        return null;
+    }
+    
+    calculateHerdChance(team, x, y, herdRate) {
+        // Count team neighbors around the new position
+        let teamNeighbors = 0;
+        
+        for (let di = -1; di <= 1; di++) {
+            for (let dj = -1; dj <= 1; dj++) {
+                if (di === 0 && dj === 0) continue;
+                
+                const ni = y + di;
+                const nj = x + dj;
+                
+                if (ni >= 0 && ni < this.gridHeight && 
+                    nj >= 0 && nj < this.gridWidth && 
+                    this.grid[ni][nj] === team) {
+                    teamNeighbors++;
+                }
+            }
+        }
+        
+        // Higher herd rate means cells need more neighbors to move
+        const minNeighbors = Math.floor(herdRate * 3);
+        return teamNeighbors >= minNeighbors ? 1.0 : 0.3 + (0.7 * teamNeighbors / minNeighbors);
     }
     
     draw() {
