@@ -15,6 +15,8 @@ class GameOfLife {
         this.running = false;
         this.generation = 0;
         this.speed = 10;
+        this.isDrawing = false; // Track mouse drag state
+        this.lastDrawnCell = null; // Track last cell to prevent duplicates
         
         this.initializeEventListeners();
         this.loadPattern('random');
@@ -41,6 +43,10 @@ class GameOfLife {
         });
         
         this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+        this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+        this.canvas.addEventListener('mouseup', () => this.handleMouseUp());
+        this.canvas.addEventListener('mouseleave', () => this.handleMouseUp());
     }
     
     handleCanvasClick(event) {
@@ -243,6 +249,14 @@ class GameOfLife {
         
         if (patterns[pattern]) {
             patterns[pattern]();
+            // Set cell ages to maximum for immediate visibility
+            for (let i = 0; i < this.gridHeight; i++) {
+                for (let j = 0; j < this.gridWidth; j++) {
+                    if (this.grid[i][j] === 1) {
+                        this.cellAges[i][j] = this.fadeInDuration;
+                    }
+                }
+            }
             this.draw();
         }
     }
@@ -279,6 +293,45 @@ class GameOfLife {
     updateInfo() {
         document.getElementById('generation').textContent = `Generation: ${this.generation}`;
         document.getElementById('status').textContent = this.running ? 'Running' : 'Paused';
+    }
+
+    handleMouseDown(event) {
+        if (this.running) return;
+        this.isDrawing = true;
+        this.lastDrawnCell = null;
+        this.drawCell(event);
+    }
+
+    handleMouseMove(event) {
+        if (!this.isDrawing || this.running) return;
+        this.drawCell(event);
+    }
+
+    handleMouseUp() {
+        this.isDrawing = false;
+        this.lastDrawnCell = null;
+    }
+
+    drawCell(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        const gridX = Math.floor(x / this.cellSize);
+        const gridY = Math.floor(y / this.cellSize);
+        
+        // Check if we're in bounds and not redrawing the same cell
+        if (gridX >= 0 && gridX < this.gridWidth && gridY >= 0 && gridY < this.gridHeight) {
+            // Prevent redrawing the same cell during drag
+            if (this.lastDrawnCell && this.lastDrawnCell.x === gridX && this.lastDrawnCell.y === gridY) {
+                return;
+            }
+            
+            this.grid[gridY][gridX] = 1;
+            this.cellAges[gridY][gridX] = this.fadeInDuration; // Make drawn cells fully visible
+            this.lastDrawnCell = { x: gridX, y: gridY };
+            this.draw();
+        }
     }
 }
 
