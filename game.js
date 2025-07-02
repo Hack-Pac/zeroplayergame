@@ -17,6 +17,15 @@ class GameOfLife {
         this.speed = 10;
         this.isDrawing = false; // Track mouse drag state
         this.lastDrawnCell = null; // Track last cell to prevent duplicates
+        this.currentTeam = 0; // Currently selected team
+        this.teamColors = {
+            0: '#ffffff', // White for no team
+            1: '#ff4444', // Red
+            2: '#4444ff', // Blue
+            3: '#44ff44', // Green
+            4: '#ffff44'  // Yellow
+        };
+        this.teamMode = false; // Whether team mode is active
         
         this.initializeEventListeners();
         this.loadPattern('random');
@@ -39,6 +48,15 @@ class GameOfLife {
         document.getElementById('nameBtn').addEventListener('click', () => this.drawName());
         document.getElementById('nameInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.drawName();
+        });
+        
+        // Team selection
+        document.querySelectorAll('input[name="team"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.currentTeam = parseInt(e.target.value);
+                this.teamMode = this.hasMultipleTeams();
+                document.getElementById('teamStats').style.display = this.teamMode ? 'flex' : 'none';
+            });
         });
         
         const speedSlider = document.getElementById('speedSlider');
@@ -65,15 +83,24 @@ class GameOfLife {
         const gridY = Math.floor(y / this.cellSize);
         
         if (gridX >= 0 && gridX < this.gridWidth && gridY >= 0 && gridY < this.gridHeight) {
-            this.grid[gridY][gridX] = this.grid[gridY][gridX] ? 0 : 1;
-            // Reset cell age when toggled
-            this.cellAges[gridY][gridX] = this.grid[gridY][gridX] ? 0 : 0;
+            // Toggle cell with current team
+            if (this.grid[gridY][gridX] === 0) {
+                this.grid[gridY][gridX] = this.currentTeam || 1; // Use team 1 if no team selected
+                this.cellAges[gridY][gridX] = 0;
+            } else {
+                this.grid[gridY][gridX] = 0;
+                this.cellAges[gridY][gridX] = 0;
+            }
+            this.teamMode = this.hasMultipleTeams();
+            document.getElementById('teamStats').style.display = this.teamMode ? 'flex' : 'none';
             this.draw();
         }
     }
     
     countNeighbors(x, y) {
         let count = 0;
+        let teamCounts = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+        
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
                 if (i === 0 && j === 0) continue;
@@ -82,11 +109,26 @@ class GameOfLife {
                 const ny = y + j;
                 
                 if (nx >= 0 && nx < this.gridHeight && ny >= 0 && ny < this.gridWidth) {
-                    count += this.grid[nx][ny];
+                    const team = this.grid[nx][ny];
+                    if (team > 0) {
+                        count++;
+                        teamCounts[team]++;
+                    }
                 }
             }
         }
-        return count;
+        
+        // Find dominant team among neighbors
+        let dominantTeam = 0;
+        let maxTeamCount = 0;
+        for (let team = 1; team <= 4; team++) {
+            if (teamCounts[team] > maxTeamCount) {
+                maxTeamCount = teamCounts[team];
+                dominantTeam = team;
+            }
+        }
+        
+        return { count, dominantTeam, teamCounts };
     }
     
     update() {
@@ -95,18 +137,28 @@ class GameOfLife {
         
         for (let i = 0; i < this.gridHeight; i++) {
             for (let j = 0; j < this.gridWidth; j++) {
-                const neighbors = this.countNeighbors(i, j);
+                const neighborData = this.countNeighbors(i, j);
+                const currentTeam = this.grid[i][j];
                 
-                if (this.grid[i][j] === 1) {
-                    if (neighbors === 2 || neighbors === 3) {
-                        newGrid[i][j] = 1;
-                        // Age existing cells
-                        newCellAges[i][j] = Math.min(this.cellAges[i][j] + 1, this.fadeInDuration);
+                if (currentTeam > 0) {
+                    // Cell is alive
+                    if (neighborData.count === 2 || neighborData.count === 3) {
+                        // In team mode, cell might change team based on neighbors
+                        if (this.teamMode && neighborData.dominantTeam > 0 && 
+                            neighborData.teamCounts[neighborData.dominantTeam] >= 2) {
+                            newGrid[i][j] = neighborData.dominantTeam;
+                            newCellAges[i][j] = currentTeam === neighborData.dominantTeam ? 
+                                Math.min(this.cellAges[i][j] + 1, this.fadeInDuration) : 0;
+                        } else {
+                            newGrid[i][j] = currentTeam;
+                            newCellAges[i][j] = Math.min(this.cellAges[i][j] + 1, this.fadeInDuration);
+                        }
                     }
                 } else {
-                    if (neighbors === 3) {
-                        newGrid[i][j] = 1;
-                        // New cells start at age 0
+                    // Cell is dead
+                    if (neighborData.count === 3) {
+                        // New cell takes the dominant team color
+                        newGrid[i][j] = neighborData.dominantTeam || 1;
                         newCellAges[i][j] = 0;
                     }
                 }
@@ -117,6 +169,7 @@ class GameOfLife {
         this.cellAges = newCellAges;
         this.generation++;
         this.updateInfo();
+        if (this.teamMode) this.updateTeamStats();
     }
     
     draw() {
@@ -142,10 +195,18 @@ class GameOfLife {
         
         for (let i = 0; i < this.gridHeight; i++) {
             for (let j = 0; j < this.gridWidth; j++) {
-                if (this.grid[i][j] === 1) {
+                const team = this.grid[i][j];
+                if (team > 0) {
                     // Calculate opacity based on cell age
                     const opacity = this.cellAges[i][j] / this.fadeInDuration;
-                    this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                    const color = this.teamColors[team] || this.teamColors[0];
+                    
+                    // Extract RGB values from hex color
+                    const r = parseInt(color.slice(1, 3), 16);
+                    const g = parseInt(color.slice(3, 5), 16);
+                    const b = parseInt(color.slice(5, 7), 16);
+                    
+                    this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
                     
                     this.ctx.fillRect(
                         j * this.cellSize + 1,
@@ -165,7 +226,7 @@ class GameOfLife {
             random: () => {
                 for (let i = 0; i < this.gridHeight; i++) {
                     for (let j = 0; j < this.gridWidth; j++) {
-                        this.grid[i][j] = Math.random() < 0.2 ? 1 : 0;
+                        this.grid[i][j] = Math.random() < 0.2 ? (this.currentTeam || 1) : 0;
                     }
                 }
             },
@@ -176,7 +237,7 @@ class GameOfLife {
                 const glider = [[0, 1], [1, 2], [2, 0], [2, 1], [2, 2]];
                 glider.forEach(([dx, dy]) => {
                     if (x + dx < this.gridHeight && y + dy < this.gridWidth) {
-                        this.grid[x + dx][y + dy] = 1;
+                        this.grid[x + dx][y + dy] = this.currentTeam || 1;
                     }
                 });
             },
@@ -186,7 +247,7 @@ class GameOfLife {
                 const y = Math.floor(this.gridWidth / 2);
                 for (let i = 0; i < 3; i++) {
                     if (y + i < this.gridWidth) {
-                        this.grid[x][y + i] = 1;
+                        this.grid[x][y + i] = this.currentTeam || 1;
                     }
                 }
             },
@@ -197,7 +258,7 @@ class GameOfLife {
                 const toad = [[0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2]];
                 toad.forEach(([dx, dy]) => {
                     if (x + dx < this.gridHeight && y + dy < this.gridWidth) {
-                        this.grid[x + dx][y + dy] = 1;
+                        this.grid[x + dx][y + dy] = this.currentTeam || 1;
                     }
                 });
             },
@@ -208,7 +269,7 @@ class GameOfLife {
                 const beacon = [[0, 0], [0, 1], [1, 0], [1, 1], [2, 2], [2, 3], [3, 2], [3, 3]];
                 beacon.forEach(([dx, dy]) => {
                     if (x + dx < this.gridHeight && y + dy < this.gridWidth) {
-                        this.grid[x + dx][y + dy] = 1;
+                        this.grid[x + dx][y + dy] = this.currentTeam || 1;
                     }
                 });
             },
@@ -230,7 +291,7 @@ class GameOfLife {
                 ];
                 pulsar.forEach(([dx, dy]) => {
                     if (x + dx >= 0 && x + dx < this.gridHeight && y + dy >= 0 && y + dy < this.gridWidth) {
-                        this.grid[x + dx][y + dy] = 1;
+                        this.grid[x + dx][y + dy] = this.currentTeam || 1;
                     }
                 });
             },
@@ -246,7 +307,7 @@ class GameOfLife {
                 ];
                 gun.forEach(([dx, dy]) => {
                     if (x + dx < this.gridHeight && y + dy < this.gridWidth) {
-                        this.grid[x + dx][y + dy] = 1;
+                        this.grid[x + dx][y + dy] = this.currentTeam || 1;
                     }
                 });
             }
@@ -257,11 +318,13 @@ class GameOfLife {
             // Set cell ages to maximum for immediate visibility
             for (let i = 0; i < this.gridHeight; i++) {
                 for (let j = 0; j < this.gridWidth; j++) {
-                    if (this.grid[i][j] === 1) {
+                    if (this.grid[i][j] > 0) {
                         this.cellAges[i][j] = this.fadeInDuration;
                     }
                 }
             }
+            this.teamMode = this.hasMultipleTeams();
+            document.getElementById('teamStats').style.display = this.teamMode ? 'flex' : 'none';
             this.draw();
         }
     }
@@ -271,6 +334,8 @@ class GameOfLife {
         this.cellAges = this.createGrid(); // Reset cell ages
         this.generation = 0;
         this.running = false;
+        this.teamMode = false;
+        document.getElementById('teamStats').style.display = 'none';
         this.updateInfo();
         this.draw();
         document.getElementById('playPauseBtn').textContent = 'Play';
@@ -332,10 +397,42 @@ class GameOfLife {
                 return;
             }
             
-            this.grid[gridY][gridX] = 1;
+            this.grid[gridY][gridX] = this.currentTeam || 1;
             this.cellAges[gridY][gridX] = this.fadeInDuration; // Make drawn cells fully visible
             this.lastDrawnCell = { x: gridX, y: gridY };
+            this.teamMode = this.hasMultipleTeams();
+            document.getElementById('teamStats').style.display = this.teamMode ? 'flex' : 'none';
             this.draw();
+        }
+    }
+
+    hasMultipleTeams() {
+        const teams = new Set();
+        for (let i = 0; i < this.gridHeight; i++) {
+            for (let j = 0; j < this.gridWidth; j++) {
+                if (this.grid[i][j] > 0) {
+                    teams.add(this.grid[i][j]);
+                    if (teams.size > 1) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    updateTeamStats() {
+        const counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+        
+        for (let i = 0; i < this.gridHeight; i++) {
+            for (let j = 0; j < this.gridWidth; j++) {
+                const team = this.grid[i][j];
+                if (team > 0) {
+                    counts[team]++;
+                }
+            }
+        }
+        
+        for (let team = 1; team <= 4; team++) {
+            document.querySelector(`#stat${team} span`).textContent = counts[team];
         }
     }
 
@@ -407,7 +504,7 @@ class GameOfLife {
                         const y = startY + row;
                         
                         if (x >= 0 && x < this.gridWidth && y >= 0 && y < this.gridHeight) {
-                            this.grid[y][x] = 1;
+                            this.grid[y][x] = this.currentTeam || 1;
                             this.cellAges[y][x] = this.fadeInDuration;
                         }
                     }
@@ -415,6 +512,8 @@ class GameOfLife {
             }
         }
         
+        this.teamMode = this.hasMultipleTeams();
+        document.getElementById('teamStats').style.display = this.teamMode ? 'flex' : 'none';
         this.draw();
     }
 }
