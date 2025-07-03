@@ -96,6 +96,21 @@
             
             <div class="config-controls">
                 <div class="config-item">
+                    <label for="formula">Game Formula</label>
+                    <select id="formula">
+                        <option value="conway">Conway's Game of Life (B3/S23)</option>
+                        <option value="highlife">HighLife (B36/S23)</option>
+                        <option value="daynight">Day & Night (B3678/S34678)</option>
+                        <option value="seeds">Seeds (B2/S)</option>
+                        <option value="life34">Life 3-4 (B34/S34)</option>
+                        <option value="diamoeba">Diamoeba (B35678/S5678)</option>
+                        <option value="morley">Morley (B368/S245)</option>
+                        <option value="anneal">Anneal (B4678/S35678)</option>
+                    </select>
+                    <p class="description">The cellular automaton rules that govern how this team's cells live, die, and reproduce.</p>
+                </div>
+                
+                <div class="config-item">
                     <label for="intelligence">Intelligence</label>
                     <input type="range" id="intelligence" min="0" max="100" value="50">
                     <span class="value-display">0.5</span>

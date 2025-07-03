@@ -280,12 +280,18 @@ button:active {
 .modal-content {
     background-color: #fefefe;
     margin: 5% auto;
-    padding: 20px;
+    padding: 30px;
     border: 1px solid #888;
     width: 80%;
-    max-width: 600px;
+    max-width: 700px;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content h2 {
+    margin-bottom: 25px;
+    font-size: 24px;
+    color: #333;
 }
 
 .close {
@@ -306,12 +312,15 @@ button:active {
     margin: 20px 0;
 }
 
-.team-selector-modal select {
+.team-selector-modal select,
+.config-item select {
     width: 100%;
     padding: 10px;
     font-size: 16px;
     border: 2px solid #ddd;
     border-radius: 5px;
+    background: white;
+    cursor: pointer;
 }
 
 .config-controls {
@@ -329,6 +338,8 @@ button:active {
     display: block;
     font-weight: bold;
     margin-bottom: 10px;
+    font-size: 16px;
+    color: #333;
 }
 
 .config-item input[type="range"] {
@@ -338,16 +349,26 @@ button:active {
 
 .value-display {
     display: inline-block;
-    width: 50px;
+    width: 60px;
     text-align: center;
     font-weight: bold;
+    font-size: 16px;
+    color: #2196F3;
+    background: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
 }
 
 .description {
     margin-top: 10px;
-    font-size: 14px;
-    color: #666;
-    line-height: 1.4;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.6;
+    background: #fff;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #e0e0e0;
 }
 
 .modal-button {

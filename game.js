@@ -29,6 +29,7 @@ class GameOfLife {
         // Team configuration with default values
         this.teamConfigs = {
             1: { // Red team
+                formula: 'conway',
                 intelligence: 0.5,    // 0-1: How smart the team is at seeking/avoiding
                 aggressiveness: 0.5,  // 0-1: How likely to convert enemy cells
                 fear: 0.5,           // 0-1: Tendency to avoid larger teams
@@ -36,6 +37,7 @@ class GameOfLife {
                 herdRate: 0.5        // 0-1: How closely cells stick together
             },
             2: { // Blue team
+                formula: 'conway',
                 intelligence: 0.5,
                 aggressiveness: 0.5,
                 fear: 0.5,
@@ -43,6 +45,7 @@ class GameOfLife {
                 herdRate: 0.5
             },
             3: { // Green team
+                formula: 'conway',
                 intelligence: 0.5,
                 aggressiveness: 0.5,
                 fear: 0.5,
@@ -50,12 +53,25 @@ class GameOfLife {
                 herdRate: 0.5
             },
             4: { // Yellow team
+                formula: 'conway',
                 intelligence: 0.5,
                 aggressiveness: 0.5,
                 fear: 0.5,
                 multiplyRate: 1.0,
                 herdRate: 0.5
             }
+        };
+        
+        // Define game formulas (B = birth, S = survive)
+        this.formulas = {
+            conway: { birth: [3], survive: [2, 3] },
+            highlife: { birth: [3, 6], survive: [2, 3] },
+            daynight: { birth: [3, 6, 7, 8], survive: [3, 4, 6, 7, 8] },
+            seeds: { birth: [2], survive: [] },
+            life34: { birth: [3, 4], survive: [3, 4] },
+            diamoeba: { birth: [3, 5, 6, 7, 8], survive: [5, 6, 7, 8] },
+            morley: { birth: [3, 6, 8], survive: [2, 4, 5] },
+            anneal: { birth: [4, 6, 7, 8], survive: [3, 5, 6, 7, 8] }
         };
         this.teamMode = false; // Whether team mode is active
         
@@ -157,6 +173,7 @@ class GameOfLife {
     
     loadTeamConfig(teamId) {
         const config = this.teamConfigs[teamId];
+        document.getElementById('formula').value = config.formula;
         document.getElementById('intelligence').value = config.intelligence * 100;
         document.getElementById('aggressiveness').value = config.aggressiveness * 100;
         document.getElementById('fear').value = config.fear * 100;
@@ -173,6 +190,7 @@ class GameOfLife {
     
     saveTeamConfig(teamId) {
         this.teamConfigs[teamId] = {
+            formula: document.getElementById('formula').value,
             intelligence: parseInt(document.getElementById('intelligence').value) / 100,
             aggressiveness: parseInt(document.getElementById('aggressiveness').value) / 100,
             fear: parseInt(document.getElementById('fear').value) / 100,
@@ -182,7 +200,7 @@ class GameOfLife {
     }
     
     handleCanvasClick(event) {
-        if (this.running) return;
+        // Allow drawing even while running
         
         const rect = this.canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
@@ -266,8 +284,19 @@ class GameOfLife {
                 const currentTeam = this.grid[i][j];
                 
                 if (currentTeam > 0) {
-                    // Cell is alive
-                    if (neighborData.count === 2 || neighborData.count === 3) {
+                    // Cell is alive - check survival rules for its team
+                    const teamConfig = this.teamConfigs[currentTeam];
+                    const teamFormula = this.formulas[teamConfig.formula];
+                    let survives = teamFormula.survive.includes(neighborData.count);
+                    
+                    // Herd rate affects survival - cells with more team neighbors are more likely to survive
+                    if (survives && teamConfig.herdRate > 0.5) {
+                        const teamNeighborRatio = neighborData.teamCounts[currentTeam] / neighborData.count;
+                        const herdBonus = (teamConfig.herdRate - 0.5) * 2; // 0 to 1
+                        survives = survives || (Math.random() < teamNeighborRatio * herdBonus * 0.3);
+                    }
+                    
+                    if (survives) {
                         // Apply aggressiveness factor for team conversion
                         if (this.teamMode && neighborData.dominantTeam > 0 && 
                             neighborData.dominantTeam !== currentTeam) {
@@ -287,15 +316,47 @@ class GameOfLife {
                             newCellAges[i][j] = Math.min(this.cellAges[i][j] + 1, this.fadeInDuration);
                         }
                     }
+                    // Cell dies if it doesn't meet survival conditions
                 } else {
-                    // Cell is dead - apply multiply rate
-                    if (neighborData.count === 3 && neighborData.dominantTeam > 0) {
-                        const multiplyRate = this.teamConfigs[neighborData.dominantTeam].multiplyRate;
-                        const birthChance = Math.random();
+                    // Cell is dead - check birth rules for dominant team
+                    if (neighborData.dominantTeam > 0) {
+                        const teamConfig = this.teamConfigs[neighborData.dominantTeam];
+                        const teamFormula = this.formulas[teamConfig.formula];
+                        let canBeBorn = teamFormula.birth.includes(neighborData.count);
                         
-                        if (birthChance < multiplyRate) {
-                            newGrid[i][j] = neighborData.dominantTeam;
-                            newCellAges[i][j] = 0;
+                        // Intelligence affects birth patterns - smarter teams can adapt birth conditions
+                        if (!canBeBorn && teamConfig.intelligence > 0.7) {
+                            // High intelligence teams can sometimes birth with one neighbor count off
+                            const nearBirth = teamFormula.birth.some(b => 
+                                Math.abs(b - neighborData.count) === 1
+                            );
+                            if (nearBirth && Math.random() < (teamConfig.intelligence - 0.7) * 2) {
+                                canBeBorn = true;
+                            }
+                        }
+                        
+                        if (canBeBorn) {
+                            const multiplyRate = teamConfig.multiplyRate;
+                            
+                            // Fear factor affects birth when enemy teams are nearby
+                            let fearPenalty = 1.0;
+                            if (teamConfig.fear > 0.5) {
+                                let enemyCount = 0;
+                                for (let t = 1; t <= 4; t++) {
+                                    if (t !== neighborData.dominantTeam && neighborData.teamCounts[t] > 0) {
+                                        enemyCount += neighborData.teamCounts[t];
+                                    }
+                                }
+                                if (enemyCount > 0) {
+                                    fearPenalty = 1 - (teamConfig.fear - 0.5) * (enemyCount / neighborData.count) * 0.5;
+                                }
+                            }
+                            
+                            const birthChance = Math.random();
+                            if (birthChance < multiplyRate * fearPenalty) {
+                                newGrid[i][j] = neighborData.dominantTeam;
+                                newCellAges[i][j] = 0;
+                            }
                         }
                     }
                 }
@@ -674,14 +735,15 @@ class GameOfLife {
     }
 
     handleMouseDown(event) {
-        if (this.running) return;
+        // Allow drawing even while running
         this.isDrawing = true;
         this.lastDrawnCell = null;
         this.drawCell(event);
     }
 
     handleMouseMove(event) {
-        if (!this.isDrawing || this.running) return;
+        if (!this.isDrawing) return;
+        // Allow drawing even while running
         this.drawCell(event);
     }
 
