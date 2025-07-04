@@ -386,3 +386,85 @@ button:active {
 .modal-button:hover {
     background: #45a049;
 }
+
+.field-size-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.field-size-control input[type="number"] {
+    width: 60px;
+    padding: 5px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+}
+
+.field-size-control button {
+    padding: 5px 15px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.field-size-control button:hover {
+    background: #45a049;
+}
+
+.camera-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.camera-info button {
+    padding: 5px 15px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.camera-info button:hover {
+    background: #1976D2;
+}
+
+/* Progress bar styles */
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #4CAF50;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.gif-settings {
+    max-height: 400px;
+    overflow-y: auto;
+    margin: 20px 0;
+}
+
+#recordingProgress {
+    text-align: center;
+    margin-top: 20px;
+}
+
+#recordingProgress p {
+    font-size: 16px;
+    margin-bottom: 10px;
+}

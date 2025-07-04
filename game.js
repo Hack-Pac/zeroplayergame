@@ -6,8 +6,30 @@ class GameOfLife {
         this.gridWidth = 80;
         this.gridHeight = 60;
         
-        this.canvas.width = this.gridWidth * this.cellSize;
-        this.canvas.height = this.gridHeight * this.cellSize;
+        // Fixed canvas size for viewport
+        this.canvas.width = 800;
+        this.canvas.height = 600;
+        
+        // Camera/viewport properties
+        this.camera = {
+            x: 0,
+            y: 0,
+            zoom: 1,
+            minZoom: 0.25,
+            maxZoom: 4
+        };
+        
+        // Mouse state
+        this.mouse = {
+            lastX: 0,
+            lastY: 0,
+            isPanning: false,
+            isDrawing: false,
+            panStartX: 0,
+            panStartY: 0,
+            cameraStartX: 0,
+            cameraStartY: 0
+        };
         
         this.grid = this.createGrid();
         this.cellAges = this.createGrid(); // Track age of each cell for fade-in effect
@@ -15,7 +37,6 @@ class GameOfLife {
         this.running = false;
         this.generation = 0;
         this.speed = 10;
-        this.isDrawing = false; // Track mouse drag state
         this.lastDrawnCell = null; // Track last cell to prevent duplicates
         this.currentTeam = 0; // Currently selected team
         this.teamColors = {
@@ -113,11 +134,32 @@ class GameOfLife {
             document.getElementById('speedValue').textContent = this.speed;
         });
         
-        this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        // Field size controls
+        document.getElementById('applySize').addEventListener('click', () => {
+            const newWidth = parseInt(document.getElementById('fieldWidth').value);
+            const newHeight = parseInt(document.getElementById('fieldHeight').value);
+            this.resizeField(newWidth, newHeight);
+        });
+        
+        // Reset view button
+        document.getElementById('resetView').addEventListener('click', () => {
+            this.camera.x = 0;
+            this.camera.y = 0;
+            this.camera.zoom = 1;
+            this.draw();
+            this.updateZoomInfo();
+        });
+        
+        // Initial zoom info
+        this.updateZoomInfo();
+        
+        // Remove single click handler since we'll handle it differently
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        this.canvas.addEventListener('mouseup', () => this.handleMouseUp());
+        this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
         this.canvas.addEventListener('mouseleave', () => this.handleMouseUp());
+        this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
+        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
         
         // Modal controls
         const configBtn = document.getElementById('configBtn');
@@ -200,28 +242,7 @@ class GameOfLife {
     }
     
     handleCanvasClick(event) {
-        // Allow drawing even while running
-        
-        const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        
-        const gridX = Math.floor(x / this.cellSize);
-        const gridY = Math.floor(y / this.cellSize);
-        
-        if (gridX >= 0 && gridX < this.gridWidth && gridY >= 0 && gridY < this.gridHeight) {
-            // Toggle cell with current team
-            if (this.grid[gridY][gridX] === 0) {
-                this.grid[gridY][gridX] = this.currentTeam || 1; // Use team 1 if no team selected
-                this.cellAges[gridY][gridX] = 0;
-            } else {
-                this.grid[gridY][gridX] = 0;
-                this.cellAges[gridY][gridX] = 0;
-            }
-            this.teamMode = this.hasMultipleTeams();
-            document.getElementById('teamStats').style.display = this.teamMode ? 'flex' : 'none';
-            this.draw();
-        }
+        // This method is no longer used - handled in mousedown/up instead
     }
     
     countNeighbors(x, y) {
@@ -542,28 +563,44 @@ class GameOfLife {
     }
     
     draw() {
+        // Clear canvas
         this.ctx.fillStyle = '#000';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Save context state
+        this.ctx.save();
+        
+        // Apply camera transform
+        this.ctx.scale(this.camera.zoom, this.camera.zoom);
+        this.ctx.translate(-this.camera.x, -this.camera.y);
+        
+        // Calculate visible area
+        const startX = Math.floor(this.camera.x / this.cellSize);
+        const startY = Math.floor(this.camera.y / this.cellSize);
+        const endX = Math.ceil((this.camera.x + this.canvas.width / this.camera.zoom) / this.cellSize);
+        const endY = Math.ceil((this.camera.y + this.canvas.height / this.camera.zoom) / this.cellSize);
+        
+        // Draw grid lines (only in visible area)
         this.ctx.strokeStyle = '#333';
-        this.ctx.lineWidth = 0.5;
+        this.ctx.lineWidth = 0.5 / this.camera.zoom;
         
-        for (let i = 0; i <= this.gridHeight; i++) {
+        for (let i = Math.max(0, startY); i <= Math.min(this.gridHeight, endY); i++) {
             this.ctx.beginPath();
-            this.ctx.moveTo(0, i * this.cellSize);
-            this.ctx.lineTo(this.canvas.width, i * this.cellSize);
+            this.ctx.moveTo(startX * this.cellSize, i * this.cellSize);
+            this.ctx.lineTo(endX * this.cellSize, i * this.cellSize);
             this.ctx.stroke();
         }
         
-        for (let j = 0; j <= this.gridWidth; j++) {
+        for (let j = Math.max(0, startX); j <= Math.min(this.gridWidth, endX); j++) {
             this.ctx.beginPath();
-            this.ctx.moveTo(j * this.cellSize, 0);
-            this.ctx.lineTo(j * this.cellSize, this.canvas.height);
+            this.ctx.moveTo(j * this.cellSize, startY * this.cellSize);
+            this.ctx.lineTo(j * this.cellSize, endY * this.cellSize);
             this.ctx.stroke();
         }
         
-        for (let i = 0; i < this.gridHeight; i++) {
-            for (let j = 0; j < this.gridWidth; j++) {
+        // Draw cells (only in visible area)
+        for (let i = Math.max(0, startY); i < Math.min(this.gridHeight, endY); i++) {
+            for (let j = Math.max(0, startX); j < Math.min(this.gridWidth, endX); j++) {
                 const team = this.grid[i][j];
                 if (team > 0) {
                     // Calculate opacity based on cell age
@@ -586,6 +623,9 @@ class GameOfLife {
                 }
             }
         }
+        
+        // Restore context state
+        this.ctx.restore();
     }
     
     loadPattern(pattern) {
@@ -735,21 +775,114 @@ class GameOfLife {
     }
 
     handleMouseDown(event) {
-        // Allow drawing even while running
-        this.isDrawing = true;
-        this.lastDrawnCell = null;
-        this.drawCell(event);
+        const rect = this.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        if (event.button === 0 && !event.shiftKey) {
+            // Left click without shift - drawing mode
+            this.mouse.isDrawing = true;
+            this.mouse.isPanning = false;
+            this.lastDrawnCell = null;
+            this.drawCell(event);
+        } else if (event.button === 0 && event.shiftKey || event.button === 2) {
+            // Shift+left click or right click - panning mode
+            this.mouse.isPanning = true;
+            this.mouse.isDrawing = false;
+            this.mouse.panStartX = x;
+            this.mouse.panStartY = y;
+            this.mouse.cameraStartX = this.camera.x;
+            this.mouse.cameraStartY = this.camera.y;
+            this.canvas.style.cursor = 'grabbing';
+        }
     }
 
     handleMouseMove(event) {
-        if (!this.isDrawing) return;
-        // Allow drawing even while running
-        this.drawCell(event);
+        const rect = this.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        if (this.mouse.isPanning) {
+            // Pan the camera
+            const dx = x - this.mouse.panStartX;
+            const dy = y - this.mouse.panStartY;
+            this.camera.x = this.mouse.cameraStartX - dx / this.camera.zoom;
+            this.camera.y = this.mouse.cameraStartY - dy / this.camera.zoom;
+            this.draw();
+        } else if (this.mouse.isDrawing) {
+            this.drawCell(event);
+        }
+        
+        // Update cursor
+        if (event.shiftKey && !this.mouse.isPanning) {
+            this.canvas.style.cursor = 'grab';
+        } else if (!this.mouse.isPanning) {
+            this.canvas.style.cursor = 'crosshair';
+        }
     }
 
-    handleMouseUp() {
-        this.isDrawing = false;
+    handleMouseUp(event) {
+        this.mouse.isDrawing = false;
+        this.mouse.isPanning = false;
         this.lastDrawnCell = null;
+        this.canvas.style.cursor = event.shiftKey ? 'grab' : 'crosshair';
+    }
+    
+    handleWheel(event) {
+        event.preventDefault();
+        
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        
+        // Get world coordinates before zoom
+        const worldX = (mouseX + this.camera.x * this.camera.zoom) / this.camera.zoom;
+        const worldY = (mouseY + this.camera.y * this.camera.zoom) / this.camera.zoom;
+        
+        // Adjust zoom
+        const zoomDelta = event.deltaY > 0 ? 0.9 : 1.1;
+        this.camera.zoom = Math.max(this.camera.minZoom, 
+                          Math.min(this.camera.maxZoom, this.camera.zoom * zoomDelta));
+        
+        // Adjust camera to keep mouse position fixed
+        this.camera.x = worldX - mouseX / this.camera.zoom;
+        this.camera.y = worldY - mouseY / this.camera.zoom;
+        
+        this.draw();
+        this.updateZoomInfo();
+    }
+    
+    updateZoomInfo() {
+        const zoomPercent = Math.round(this.camera.zoom * 100);
+        document.getElementById('zoomInfo').textContent = `Zoom: ${zoomPercent}%`;
+    }
+    
+    resizeField(newWidth, newHeight) {
+        if (newWidth < 50 || newWidth > 500 || newHeight < 50 || newHeight > 500) {
+            alert('Field size must be between 50 and 500');
+            return;
+        }
+        
+        // Create new grids
+        const oldGrid = this.grid;
+        const oldAges = this.cellAges;
+        this.gridWidth = newWidth;
+        this.gridHeight = newHeight;
+        this.grid = this.createGrid();
+        this.cellAges = this.createGrid();
+        
+        // Copy old data
+        const copyHeight = Math.min(oldGrid.length, this.gridHeight);
+        const copyWidth = Math.min(oldGrid[0].length, this.gridWidth);
+        
+        for (let i = 0; i < copyHeight; i++) {
+            for (let j = 0; j < copyWidth; j++) {
+                this.grid[i][j] = oldGrid[i][j];
+                this.cellAges[i][j] = oldAges[i][j];
+            }
+        }
+        
+        this.draw();
     }
 
     drawCell(event) {
@@ -757,8 +890,12 @@ class GameOfLife {
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
         
-        const gridX = Math.floor(x / this.cellSize);
-        const gridY = Math.floor(y / this.cellSize);
+        // Convert screen coordinates to world coordinates
+        const worldX = (x / this.camera.zoom) + this.camera.x;
+        const worldY = (y / this.camera.zoom) + this.camera.y;
+        
+        const gridX = Math.floor(worldX / this.cellSize);
+        const gridY = Math.floor(worldY / this.cellSize);
         
         // Check if we're in bounds and not redrawing the same cell
         if (gridX >= 0 && gridX < this.gridWidth && gridY >= 0 && gridY < this.gridHeight) {
