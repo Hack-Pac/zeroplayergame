@@ -8,14 +8,12 @@ export class GifShowcaseManager {
         
         this.initializeEventListeners();
         this.loadFromStorage();
-    } 
-    //fix this later
+    }
+    
     initializeEventListeners() {
         const showcaseBtn = document.getElementById('showcaseBtn');
         const modal = document.getElementById('showcaseModal');
         const closeBtn = modal.querySelector('.close');
-        const uploadBtn = document.getElementById('uploadGifBtn');
-        const fileInput = document.getElementById('gifFileInput');
         const sortSelect = document.getElementById('sortSelect');
         
         // Open modal
@@ -33,21 +31,6 @@ export class GifShowcaseManager {
             if (event.target === modal) {
                 modal.style.display = 'none';
             }
-        });
-        
-        // Upload button
-        uploadBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-        
-        // File input change
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file && file.type === 'image/gif') {
-                this.handleFileUpload(file);
-            }
-            // Reset input
-            e.target.value = '';
         });
         
         // Sort change
@@ -81,26 +64,6 @@ export class GifShowcaseManager {
         }
     }
     
-    async handleFileUpload(file) {
-        const reader = new FileReader();
-        
-        reader.onload = async (e) => {
-            const dataUrl = e.target.result;
-            const name = prompt('Enter a name for this GIF:', file.name.replace('.gif', ''));
-            
-            if (name) {
-                await this.addGif({
-                    name: name,
-                    dataUrl: dataUrl,
-                    localFile: true,
-                    timestamp: Date.now(),
-                    size: file.size
-                });
-            }
-        };
-        
-        reader.readAsDataURL(file);
-    }
     
     async addGif(gifData) {
         // Generate thumbnail
@@ -108,13 +71,13 @@ export class GifShowcaseManager {
         
         const gifEntry = {
             id: Date.now().toString(),
-            name: gifData.name || 'Untitled',
+            title: gifData.title || 'Untitled',
+            description: gifData.description || '',
             thumbnailUrl: thumbnail,
             fullUrl: gifData.url || gifData.dataUrl,
             timestamp: gifData.timestamp || Date.now(),
             generations: gifData.generations || 'Unknown',
-            frameRate: gifData.frameRate || 'Unknown',
-            localFile: gifData.localFile || false
+            frameRate: gifData.frameRate || 'Unknown'
         };
         
         // Add to beginning of array
@@ -189,7 +152,7 @@ export class GifShowcaseManager {
                 this.gifs.sort((a, b) => a.timestamp - b.timestamp);
                 break;
             case 'name':
-                this.gifs.sort((a, b) => a.name.localeCompare(b.name));
+                this.gifs.sort((a, b) => a.title.localeCompare(b.title));
                 break;
         }
     }
@@ -231,12 +194,14 @@ export class GifShowcaseManager {
         const date = new Date(gif.timestamp).toLocaleDateString();
         
         div.innerHTML = `
-            <img src="${gif.thumbnailUrl}" alt="${gif.name}" class="gif-thumbnail">
+            <img src="${gif.thumbnailUrl}" alt="${gif.title}" class="gif-thumbnail">
             <div class="gif-info">
-                <div class="gif-name" title="${gif.name}">${gif.name}</div>
+                <div class="gif-name" title="${gif.title}">${gif.title}</div>
+                ${gif.description ? `<div class="gif-description">${gif.description}</div>` : ''}
                 <div class="gif-metadata">
                     ${date}
                     ${gif.generations !== 'Unknown' ? `• ${gif.generations} gen` : ''}
+                    ${gif.frameRate !== 'Unknown' ? `• ${gif.frameRate} FPS` : ''}
                 </div>
                 <div class="gif-actions">
                     <button class="view-btn" data-id="${gif.id}">View</button>
@@ -265,27 +230,35 @@ export class GifShowcaseManager {
     downloadGif(gif) {
         const link = document.createElement('a');
         link.href = gif.fullUrl;
-        link.download = `${gif.name}.gif`;
+        link.download = `${gif.title}.gif`;
         link.click();
     }
     
     // Method to be called from GIF recorder
     async saveFromRecorder(blob, settings) {
-        const dataUrl = await this.blobToDataUrl(blob);
-        const name = prompt('Enter a name for this GIF:', `Game_${new Date().toISOString().slice(0, 10)}`);
+        // Create a custom dialog for title and description
+        const title = prompt('Enter a title for this GIF:', `Game of Life - ${new Date().toLocaleDateString()}`);
         
-        if (name) {
-            await this.addGif({
-                name: name,
-                dataUrl: dataUrl,
-                generations: settings.generations,
-                frameRate: settings.frameRate,
-                timestamp: Date.now()
-            });
-            
-            // Show the showcase modal
-            document.getElementById('showcaseModal').style.display = 'block';
+        if (!title) {
+            return; // User cancelled
         }
+        
+        const description = prompt('Enter a description (optional):', `${settings.generations} generations at ${settings.frameRate} FPS`);
+        
+        const dataUrl = await this.blobToDataUrl(blob);
+        
+        await this.addGif({
+            title: title,
+            description: description || '',
+            dataUrl: dataUrl,
+            generations: settings.generations,
+            frameRate: settings.frameRate,
+            timestamp: Date.now()
+        });
+        
+        // Show the showcase modal
+        document.getElementById('showcaseModal').style.display = 'block';
+        this.renderGallery();
     }
     
     blobToDataUrl(blob) {

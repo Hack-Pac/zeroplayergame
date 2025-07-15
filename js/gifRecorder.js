@@ -67,7 +67,7 @@ export class GifRecorder {
             quality: this.settings.quality,
             width: scaledWidth,
             height: scaledHeight,
-            workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
+            workerScript: 'js/vendor/gif.worker.js'
         });
         
         this.worker.on('finished', (blob) => {

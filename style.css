@@ -468,3 +468,199 @@ button:active {
     font-size: 16px;
     margin-bottom: 10px;
 }
+
+/* Showcase Button Container */
+.showcase-button-container {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.showcase-main-btn {
+    background-color: #333;
+    color: white;
+    border: 2px solid white;
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.showcase-main-btn:hover {
+    background-color: #555;
+}
+
+.showcase-main-btn:active {
+    background-color: #222;
+}
+
+/* GIF Showcase Styles */
+.showcase-content {
+    max-width: 900px;
+}
+
+.showcase-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.showcase-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.showcase-filters label {
+    font-weight: 500;
+    color: #666;
+}
+
+.showcase-filters select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+}
+
+.showcase-stats {
+    text-align: center;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #666;
+}
+
+.gif-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.gif-item {
+    position: relative;
+    background: #f9f9f9;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.gif-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.gif-thumbnail {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    display: block;
+}
+
+.gif-info {
+    padding: 12px;
+    background: white;
+}
+
+.gif-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gif-description {
+    font-size: 13px;
+    color: #555;
+    margin: 5px 0;
+    line-height: 1.4;
+    max-height: 40px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.gif-metadata {
+    font-size: 12px;
+    color: #666;
+}
+
+.gif-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.gif-actions button {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.view-btn {
+    background: #2196F3;
+    color: white;
+}
+
+.view-btn:hover {
+    background: #1976D2;
+}
+
+.download-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.download-btn:hover {
+    background: #45a049;
+}
+
+.delete-btn {
+    background: #f44336;
+    color: white;
+}
+
+.delete-btn:hover {
+    background: #da190b;
+}
+
+.empty-showcase {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.empty-showcase p {
+    margin: 10px 0;
+}
+
+/* Responsive gallery */
+@media (max-width: 768px) {
+    .gif-gallery {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+    }
+    
+    .showcase-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

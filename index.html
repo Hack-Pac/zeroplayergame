@@ -14,6 +14,10 @@
             <span id="status">Paused</span>
         </div>
         
+        <div class="showcase-button-container">
+            <button id="showcaseBtn" class="showcase-main-btn">🎬 GIF Showcase</button>
+        </div>
+        
         <div class="team-selector">
             <div class="team-option" data-team="0">
                 <input type="radio" name="team" value="0" id="team0" checked>
@@ -52,7 +56,6 @@
             <button id="randomBtn">Random</button>
             <button id="configBtn">Team Config</button>
             <button id="recordBtn">Record GIF</button>
-            <button id="showcaseBtn">GIF Showcase</button>
             
             <div class="pattern-buttons">
                 <button class="pattern-btn" data-pattern="glider">Glider</button>
@@ -228,12 +231,8 @@
             <h2>GIF Showcase</h2>
             
             <div class="showcase-controls">
-                <div class="showcase-actions">
-                    <button id="uploadGifBtn" class="modal-button">Upload Your GIF</button>
-                    <input type="file" id="gifFileInput" accept="image/gif" style="display: none;">
-                </div>
-                
                 <div class="showcase-filters">
+                    <label for="sortSelect">Sort by:</label>
                     <select id="sortSelect">
                         <option value="recent">Most Recent</option>
                         <option value="oldest">Oldest First</option>
@@ -252,12 +251,12 @@
             
             <div id="emptyShowcase" class="empty-showcase">
                 <p>No GIFs in the showcase yet!</p>
-                <p>Record a game and save it to the showcase, or upload your own GIF.</p>
+                <p>Record a game and save it to the showcase to get started.</p>
             </div>
         </div>
     </div>
     
-    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+    <script src="js/vendor/gif.js"></script>
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

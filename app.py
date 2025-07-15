@@ -7,6 +7,7 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
+
 # Serve static files (CSS, JS)
 @app.route('/<path:filename>')
 def serve_static(filename):
