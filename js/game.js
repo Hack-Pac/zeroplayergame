@@ -9,6 +9,7 @@ import {
 import { Camera } from './camera.js';
 import { TeamConfigManager } from './teamConfig.js';
 import { GifRecorder } from './gifRecorder.js';
+import { GifShowcaseManager } from './gifShowcase.js';
 import { PIXEL_FONT } from './pixelFont.js';
 import { loadPattern } from './patterns.js';
 
@@ -27,7 +28,8 @@ export class GameOfLife {
         // Initialize components
         this.camera = new Camera(this.canvas);
         this.teamConfigManager = new TeamConfigManager();
-        this.gifRecorder = new GifRecorder(this);
+        this.gifShowcaseManager = new GifShowcaseManager();
+        this.gifRecorder = new GifRecorder(this, this.gifShowcaseManager);
         
         // Game state
         this.grid = this.createGrid();

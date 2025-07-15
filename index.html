@@ -52,6 +52,7 @@
             <button id="randomBtn">Random</button>
             <button id="configBtn">Team Config</button>
             <button id="recordBtn">Record GIF</button>
+            <button id="showcaseBtn">GIF Showcase</button>
             
             <div class="pattern-buttons">
                 <button class="pattern-btn" data-pattern="glider">Glider</button>
@@ -216,6 +217,42 @@
                     <div class="progress-fill"></div>
                 </div>
                 <button id="cancelRecording" class="modal-button" style="background: #f44336;">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- GIF Showcase Modal -->
+    <div id="showcaseModal" class="modal">
+        <div class="modal-content showcase-content">
+            <span class="close">&times;</span>
+            <h2>GIF Showcase</h2>
+            
+            <div class="showcase-controls">
+                <div class="showcase-actions">
+                    <button id="uploadGifBtn" class="modal-button">Upload Your GIF</button>
+                    <input type="file" id="gifFileInput" accept="image/gif" style="display: none;">
+                </div>
+                
+                <div class="showcase-filters">
+                    <select id="sortSelect">
+                        <option value="recent">Most Recent</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name">By Name</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="showcaseStats" class="showcase-stats">
+                <span id="gifCount">0 GIFs in showcase</span>
+            </div>
+            
+            <div id="gifGallery" class="gif-gallery">
+                <!-- GIFs will be dynamically added here -->
+            </div>
+            
+            <div id="emptyShowcase" class="empty-showcase">
+                <p>No GIFs in the showcase yet!</p>
+                <p>Record a game and save it to the showcase, or upload your own GIF.</p>
             </div>
         </div>
     </div>

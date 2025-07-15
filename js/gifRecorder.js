@@ -1,8 +1,9 @@
 // GIF Recording functionality
 
 export class GifRecorder {
-    constructor(game) {
+    constructor(game, showcaseManager = null) {
         this.game = game;
+        this.showcaseManager = showcaseManager;
         this.recording = false;
         this.frames = [];
         this.settings = null;
@@ -172,21 +173,30 @@ export class GifRecorder {
     }
     
     onGifFinished(blob) {
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `game-of-life-${Date.now()}.gif`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        // Reset UI
+        // Reset UI first
         this.cancelRecording();
         
-        // Show success message
-        alert('GIF saved successfully!');
+        // Create options for the user
+        const choice = confirm('GIF created successfully!\n\nClick OK to save to the GIF Showcase\nClick Cancel to download directly');
+        
+        if (choice && this.showcaseManager) {
+            // Save to showcase
+            this.showcaseManager.saveFromRecorder(blob, {
+                generations: this.settings.generationsToRecord,
+                frameRate: this.settings.frameRate
+            });
+        } else {
+            // Download directly
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `game-of-life-${Date.now()}.gif`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert('GIF saved successfully!');
+        }
     }
     
     isRecording() {
