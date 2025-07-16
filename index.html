@@ -16,6 +16,7 @@
         
         <div class="showcase-button-container">
             <button id="showcaseBtn" class="showcase-main-btn">🎬 GIF Showcase</button>
+            <button id="helpBtn" class="help-btn">❓ Need Help?</button>
         </div>
         
         <div class="team-selector">
@@ -51,19 +52,19 @@
         <canvas id="gameCanvas"></canvas>
         
         <div class="controls">
-            <button id="playPauseBtn">Play</button>
-            <button id="clearBtn">Clear</button>
-            <button id="randomBtn">Random</button>
-            <button id="configBtn">Team Config</button>
-            <button id="recordBtn">Record GIF</button>
+            <button id="playPauseBtn" title="Start or pause the simulation">Play</button>
+            <button id="clearBtn" title="Clear all cells from the grid">Clear</button>
+            <button id="randomBtn" title="Generate random cell pattern">Random</button>
+            <button id="configBtn" title="Configure team behaviors and rules">Team Config</button>
+            <button id="recordBtn" title="Record game as animated GIF">Record GIF</button>
             
             <div class="pattern-buttons">
-                <button class="pattern-btn" data-pattern="glider">Glider</button>
-                <button class="pattern-btn" data-pattern="blinker">Blinker</button>
-                <button class="pattern-btn" data-pattern="toad">Toad</button>
-                <button class="pattern-btn" data-pattern="beacon">Beacon</button>
-                <button class="pattern-btn" data-pattern="pulsar">Pulsar</button>
-                <button class="pattern-btn" data-pattern="gosperGliderGun">Glider Gun</button>
+                <button class="pattern-btn" data-pattern="glider" title="Small spaceship pattern">Glider</button>
+                <button class="pattern-btn" data-pattern="blinker" title="Simple oscillator">Blinker</button>
+                <button class="pattern-btn" data-pattern="toad" title="2-period oscillator">Toad</button>
+                <button class="pattern-btn" data-pattern="beacon" title="2-period oscillator">Beacon</button>
+                <button class="pattern-btn" data-pattern="pulsar" title="Large 3-period oscillator">Pulsar</button>
+                <button class="pattern-btn" data-pattern="gosperGliderGun" title="Continuously generates gliders">Glider Gun</button>
             </div>
             
             <div class="speed-control">
@@ -92,7 +93,7 @@
         </div>
         
         <div class="instructions">
-            <p><strong>Draw:</strong> Left-click | <strong>Pan:</strong> Shift+drag or right-drag | <strong>Zoom:</strong> Mouse wheel</p>
+            <p><strong>Draw:</strong> Left-click | <strong>Pan:</strong> Shift+drag or right-drag | <strong>Zoom:</strong> Mouse wheel | <strong>Help:</strong> Press ? or F1</p>
         </div>
     </div>
     
@@ -252,6 +253,382 @@
             <div id="emptyShowcase" class="empty-showcase">
                 <p>No GIFs in the showcase yet!</p>
                 <p>Record a game and save it to the showcase to get started.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content help-content">
+            <span class="close">&times;</span>
+            <h2>Game Help & Documentation</h2>
+            
+            <div class="help-tabs">
+                <button class="help-tab active" data-tab="getting-started">Getting Started</button>
+                <button class="help-tab" data-tab="controls">Controls</button>
+                <button class="help-tab" data-tab="teams">Teams & Combat</button>
+                <button class="help-tab" data-tab="recording">Recording</button>
+                <button class="help-tab" data-tab="tips">Tips</button>
+            </div>
+            
+            <div class="help-content-area">
+                <!-- Getting Started Tab -->
+                <div class="help-section active" id="getting-started">
+                    <h3>Welcome to Conway's Game of Life</h3>
+                    <p class="description">This is an interactive implementation of Conway's Game of Life, a cellular automaton where cells live, die, and reproduce based on simple rules.</p>
+                    
+                    <h4>Basic Rules</h4>
+                    <div class="help-rule">
+                        <strong>Birth:</strong> A dead cell with exactly 3 live neighbors becomes alive
+                    </div>
+                    <div class="help-rule">
+                        <strong>Survival:</strong> A live cell with 2 or 3 neighbors stays alive
+                    </div>
+                    <div class="help-rule">
+                        <strong>Death:</strong> All other live cells die (loneliness or overcrowding)
+                    </div>
+                    
+                    <h4>Quick Start</h4>
+                    <ol class="help-list">
+                        <li>Click "Random" to generate a random pattern</li>
+                        <li>Click "Play" to start the simulation</li>
+                        <li>Left-click on the grid to draw your own cells</li>
+                        <li>Try placing different patterns using the pattern buttons</li>
+                    </ol>
+                </div>
+                
+                <!-- Controls Tab -->
+                <div class="help-section" id="controls">
+                    <h3>Controls & Interactions</h3>
+                    
+                    <h4>Mouse Controls</h4>
+                    <div class="help-control">
+                        <strong>Left Click:</strong> Draw cells on the grid
+                    </div>
+                    <div class="help-control">
+                        <strong>Shift + Drag:</strong> Pan around the grid
+                    </div>
+                    <div class="help-control">
+                        <strong>Right Click + Drag:</strong> Pan around the grid
+                    </div>
+                    <div class="help-control">
+                        <strong>Mouse Wheel:</strong> Zoom in/out
+                    </div>
+                    
+                    <h4>Control Buttons</h4>
+                    <div class="help-control">
+                        <strong>Play/Pause:</strong> Start or stop the simulation
+                    </div>
+                    <div class="help-control">
+                        <strong>Clear:</strong> Remove all cells from the grid
+                    </div>
+                    <div class="help-control">
+                        <strong>Random:</strong> Fill grid with random cells
+                    </div>
+                    <div class="help-control">
+                        <strong>Reset View:</strong> Reset camera to default position
+                    </div>
+                    
+                    <h4>Pattern Buttons</h4>
+                    <p class="description">Click a pattern button to place it at the grid center:</p>
+                    <ul class="help-list">
+                        <li><strong>Glider:</strong> Small spaceship that moves diagonally</li>
+                        <li><strong>Blinker:</strong> Oscillates between horizontal and vertical</li>
+                        <li><strong>Toad:</strong> 2-period oscillator</li>
+                        <li><strong>Beacon:</strong> 2-period oscillator with separated parts</li>
+                        <li><strong>Pulsar:</strong> Large 3-period oscillator</li>
+                        <li><strong>Glider Gun:</strong> Continuously generates gliders</li>
+                    </ul>
+                    
+                    <h4>Name Drawing</h4>
+                    <p class="description">Enter your name (up to 15 characters) and click "Draw Name" to convert it into living cells using a pixel font.</p>
+                </div>
+                
+                <!-- Teams Tab -->
+                <div class="help-section" id="teams">
+                    <h3>Teams & Combat System</h3>
+                    
+                    <h4>Team Selection</h4>
+                    <p class="description">Select a team color before drawing cells. Teams have unique behaviors and can compete with each other.</p>
+                    
+                    <h4>Team Configuration</h4>
+                    <p class="description">Click "Team Config" to customize team behaviors:</p>
+                    
+                    <div class="help-config">
+                        <strong>Game Formula:</strong>
+                        <ul class="help-list">
+                            <li>Conway's (B3/S23): Classic rules</li>
+                            <li>HighLife (B36/S23): Creates replicators</li>
+                            <li>Day & Night (B3678/S34678): Symmetric rules</li>
+                            <li>Seeds (B2/S): Explosive growth</li>
+                            <li>And more experimental formulas...</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="help-config">
+                        <strong>Behavioral Traits:</strong>
+                        <ul class="help-list">
+                            <li><strong>Intelligence:</strong> Strategic movement toward enemies</li>
+                            <li><strong>Aggressiveness:</strong> Likelihood to convert enemy cells</li>
+                            <li><strong>Fear Factor:</strong> Avoidance of larger teams</li>
+                            <li><strong>Multiply Rate:</strong> Reproduction speed modifier</li>
+                            <li><strong>Herd Rate:</strong> Tendency to stick together</li>
+                        </ul>
+                    </div>
+                    
+                    <h4>Combat Mechanics</h4>
+                    <p class="description">When cells from different teams are adjacent, they may convert based on team traits and relative strengths.</p>
+                </div>
+                
+                <!-- Recording Tab -->
+                <div class="help-section" id="recording">
+                    <h3>GIF Recording & Showcase</h3>
+                    
+                    <h4>Recording a GIF</h4>
+                    <ol class="help-list">
+                        <li>Set up your desired initial pattern</li>
+                        <li>Click "Record GIF" to open settings</li>
+                        <li>Configure recording parameters:
+                            <ul>
+                                <li><strong>Generations:</strong> How many steps to record</li>
+                                <li><strong>Frame Rate:</strong> Playback speed (FPS)</li>
+                                <li><strong>Quality:</strong> Lower = better quality, larger file</li>
+                                <li><strong>Scale:</strong> Output size relative to canvas</li>
+                                <li><strong>Capture Interval:</strong> Skip generations for smoother GIFs</li>
+                            </ul>
+                        </li>
+                        <li>Click "Start Recording"</li>
+                        <li>Save to showcase when complete</li>
+                    </ol>
+                    
+                    <h4>GIF Showcase</h4>
+                    <p class="description">Click "GIF Showcase" to view all saved recordings. You can:</p>
+                    <ul class="help-list">
+                        <li>View GIFs in fullscreen</li>
+                        <li>Download GIFs to your device</li>
+                        <li>Delete unwanted recordings</li>
+                        <li>Sort by date or name</li>
+                    </ul>
+                </div>
+                
+                <!-- Tips Tab -->
+                <div class="help-section" id="tips">
+                    <h3>Tips & Strategies</h3>
+                    
+                    <h4>Interesting Patterns to Try</h4>
+                    <ul class="help-list">
+                        <li>Place two Glider Guns facing each other</li>
+                        <li>Create a "garden" with multiple oscillators</li>
+                        <li>Draw your name and watch it evolve</li>
+                        <li>Set up team battles with different formulas</li>
+                    </ul>
+                    
+                    <h4>Team Strategy Tips</h4>
+                    <ul class="help-list">
+                        <li>High intelligence + fear creates evasive teams</li>
+                        <li>High aggression + herd rate creates strong formations</li>
+                        <li>Different formulas excel in different scenarios</li>
+                        <li>Seeds formula can quickly overwhelm but dies fast</li>
+                    </ul>
+                    
+                    <h4>Performance Tips</h4>
+                    <ul class="help-list">
+                        <li>Reduce field size for smoother animation</li>
+                        <li>Lower speed for complex patterns</li>
+                        <li>Clear dead areas to improve performance</li>
+                        <li>Use smaller scales when recording GIFs</li>
+                    </ul>
+                    
+                    <h4>Advanced Techniques</h4>
+                    <ul class="help-list">
+                        <li>Zoom in for precise cell placement</li>
+                        <li>Pan while paused to plan large structures</li>
+                        <li>Combine different patterns for unique behaviors</li>
+                        <li>Experiment with team traits for emergent gameplay</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content help-content">
+            <span class="close">&times;</span>
+            <h2>Game Help & Documentation</h2>
+            
+            <div class="help-tabs">
+                <button class="help-tab active" data-tab="getting-started">📚 Getting Started</button>
+                <button class="help-tab" data-tab="controls">🎮 Controls</button>
+                <button class="help-tab" data-tab="teams">⚔️ Teams & Combat</button>
+                <button class="help-tab" data-tab="recording">📹 Recording</button>
+                <button class="help-tab" data-tab="tips">💡 Tips</button>
+            </div>
+            
+            <div class="help-content-area">
+                <!-- Getting Started Tab -->
+                <div class="help-section active" id="getting-started">
+                    <h3>Welcome to Conway's Game of Life!</h3>
+                    <p>This is an interactive implementation of Conway's Game of Life with team-based combat mechanics.</p>
+                    
+                    <h4>Basic Rules</h4>
+                    <p>The Game of Life follows these simple rules:</p>
+                    <ul>
+                        <li><strong>Birth:</strong> A dead cell with exactly 3 living neighbors becomes alive</li>
+                        <li><strong>Survival:</strong> A living cell with 2 or 3 neighbors stays alive</li>
+                        <li><strong>Death:</strong> Living cells with fewer than 2 neighbors die (underpopulation)</li>
+                        <li><strong>Death:</strong> Living cells with more than 3 neighbors die (overpopulation)</li>
+                    </ul>
+                    
+                    <h4>Quick Start</h4>
+                    <ol>
+                        <li>Click "Random" to generate a random pattern</li>
+                        <li>Or draw your own pattern by left-clicking on the grid</li>
+                        <li>Press "Play" to start the simulation</li>
+                        <li>Watch as patterns evolve over generations!</li>
+                    </ol>
+                </div>
+                
+                <!-- Controls Tab -->
+                <div class="help-section" id="controls">
+                    <h3>Mouse Controls</h3>
+                    <ul>
+                        <li><strong>Left Click:</strong> Draw cells (place or remove)</li>
+                        <li><strong>Shift + Drag:</strong> Pan the view</li>
+                        <li><strong>Right Click + Drag:</strong> Pan the view</li>
+                        <li><strong>Mouse Wheel:</strong> Zoom in/out</li>
+                    </ul>
+                    
+                    <h3>Control Buttons</h3>
+                    <ul>
+                        <li><strong>Play/Pause:</strong> Start or stop the simulation</li>
+                        <li><strong>Clear:</strong> Remove all cells from the grid</li>
+                        <li><strong>Random:</strong> Generate a random cell pattern</li>
+                        <li><strong>Team Config:</strong> Configure team behaviors</li>
+                        <li><strong>Record GIF:</strong> Create an animated GIF of the game</li>
+                    </ul>
+                    
+                    <h3>Pattern Buttons</h3>
+                    <p>Click to place pre-made patterns:</p>
+                    <ul>
+                        <li><strong>Glider:</strong> A pattern that moves diagonally</li>
+                        <li><strong>Blinker:</strong> Oscillates between two states</li>
+                        <li><strong>Toad:</strong> A 2-period oscillator</li>
+                        <li><strong>Beacon:</strong> Another 2-period oscillator</li>
+                        <li><strong>Pulsar:</strong> A 3-period oscillator</li>
+                        <li><strong>Glider Gun:</strong> Continuously creates gliders</li>
+                    </ul>
+                    
+                    <h3>Other Controls</h3>
+                    <ul>
+                        <li><strong>Speed Slider:</strong> Control simulation speed (1-20)</li>
+                        <li><strong>Field Size:</strong> Adjust grid dimensions (50x50 to 500x500)</li>
+                        <li><strong>Name Input:</strong> Type text and click "Draw Name" to convert to pixels</li>
+                        <li><strong>Reset View:</strong> Return to default zoom and position</li>
+                    </ul>
+                </div>
+                
+                <!-- Teams Tab -->
+                <div class="help-section" id="teams">
+                    <h3>Team System</h3>
+                    <p>Select a team before drawing to create colored cells with unique behaviors:</p>
+                    <ul>
+                        <li><strong>No Team (White):</strong> Standard Game of Life rules</li>
+                        <li><strong>Red Team:</strong> Aggressive expansion</li>
+                        <li><strong>Blue Team:</strong> Defensive growth</li>
+                        <li><strong>Green Team:</strong> Balanced approach</li>
+                        <li><strong>Yellow Team:</strong> Rapid multiplication</li>
+                    </ul>
+                    
+                    <h3>Team Configuration</h3>
+                    <p>Each team has customizable parameters:</p>
+                    <ul>
+                        <li><strong>Intelligence (0-100):</strong> Smart decision making in conflicts</li>
+                        <li><strong>Aggressiveness (0-100):</strong> Tendency to attack other teams</li>
+                        <li><strong>Fear (0-100):</strong> Tendency to avoid conflicts</li>
+                        <li><strong>Multiply Rate (0-100):</strong> Speed of reproduction</li>
+                        <li><strong>Herd Rate (0-100):</strong> Tendency to group together</li>
+                    </ul>
+                    
+                    <h3>Combat Mechanics</h3>
+                    <p>When cells from different teams meet:</p>
+                    <ul>
+                        <li>Teams compete based on their stats</li>
+                        <li>Intelligence improves combat effectiveness</li>
+                        <li>Aggressiveness increases attack chance</li>
+                        <li>Fear may cause cells to retreat</li>
+                        <li>Watch the team statistics to track populations</li>
+                    </ul>
+                </div>
+                
+                <!-- Recording Tab -->
+                <div class="help-section" id="recording">
+                    <h3>GIF Recording</h3>
+                    <p>Create animated GIFs of your Game of Life simulations!</p>
+                    
+                    <h4>Recording Settings</h4>
+                    <ul>
+                        <li><strong>Generations:</strong> How many steps to record (10-1000)</li>
+                        <li><strong>Frame Rate:</strong> Playback speed in FPS (1-30)</li>
+                        <li><strong>Quality:</strong> Lower = better quality, larger file</li>
+                        <li><strong>Scale:</strong> Size of output GIF (25%-100%)</li>
+                        <li><strong>Capture Interval:</strong> Skip frames for smoother GIFs</li>
+                    </ul>
+                    
+                    <h4>How to Record</h4>
+                    <ol>
+                        <li>Set up your desired pattern</li>
+                        <li>Click "Record GIF"</li>
+                        <li>Configure recording settings</li>
+                        <li>Click "Start Recording"</li>
+                        <li>Wait for the recording to complete</li>
+                        <li>Choose to save to showcase or download</li>
+                    </ol>
+                    
+                    <h3>GIF Showcase</h3>
+                    <p>The showcase stores your recorded GIFs locally:</p>
+                    <ul>
+                        <li>Add title and description to your GIFs</li>
+                        <li>View, download, or delete saved GIFs</li>
+                        <li>Sort by date or name</li>
+                        <li>Storage limit: 50 GIFs</li>
+                    </ul>
+                </div>
+                
+                <!-- Tips Tab -->
+                <div class="help-section" id="tips">
+                    <h3>Interesting Patterns to Try</h3>
+                    <ul>
+                        <li><strong>R-pentomino:</strong> A small pattern that creates chaos for 1000+ generations</li>
+                        <li><strong>Acorn:</strong> 7 cells that grow for 5000+ generations</li>
+                        <li><strong>Methuselahs:</strong> Small patterns with long lifespans</li>
+                        <li><strong>Spaceships:</strong> Patterns that move across the grid</li>
+                    </ul>
+                    
+                    <h3>Team Strategy Tips</h3>
+                    <ul>
+                        <li>High intelligence + low aggression = defensive stronghold</li>
+                        <li>High multiply rate + high herd rate = rapid expansion</li>
+                        <li>Balanced stats often perform best in combat</li>
+                        <li>Create barriers between teams to control growth</li>
+                    </ul>
+                    
+                    <h3>Performance Tips</h3>
+                    <ul>
+                        <li>Larger field sizes may slow down simulation</li>
+                        <li>Reduce speed for complex patterns</li>
+                        <li>Clear unused areas to improve performance</li>
+                        <li>Recording GIFs of large fields may take time</li>
+                    </ul>
+                    
+                    <h3>Creative Ideas</h3>
+                    <ul>
+                        <li>Draw your name and watch it evolve</li>
+                        <li>Create team battles with strategic placement</li>
+                        <li>Build stable structures as fortresses</li>
+                        <li>Experiment with different game formulas</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
