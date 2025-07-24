@@ -4,6 +4,7 @@ import sys
 import math
 import random
 from enum import Enum
+import os
 
 class Pattern(Enum):
     RANDOM = "Random"
@@ -13,6 +14,125 @@ class Pattern(Enum):
     BEACON = "Beacon"
     PULSAR = "Pulsar"
     GOSPER_GLIDER_GUN = "Gosper Glider Gun"
+
+class SoundSystem:
+    def __init__(self):
+        pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+        self.enabled = True
+        self.volume = 0.3
+        
+        # Generate procedural sounds
+        self.birth_sound = self.generate_birth_sound()
+        self.death_sound = self.generate_death_sound()
+        self.pattern_sound = self.generate_pattern_sound()
+        
+        # Ambient music generation
+        self.ambient_playing = False
+        self.last_population = 0
+        
+    def generate_birth_sound(self):
+        """Generate a pleasant chime for cell birth"""
+        duration = 0.3
+        sample_rate = 22050
+        frames = int(duration * sample_rate)
+        
+        # Create a pleasant chord (C major)
+        frequencies = [523.25, 659.25, 783.99]  # C5, E5, G5
+        sound_array = np.zeros(frames)
+        
+        for freq in frequencies:
+            wave = np.sin(2 * np.pi * freq * np.linspace(0, duration, frames))
+            # Apply envelope
+            envelope = np.exp(-np.linspace(0, 3, frames))
+            sound_array += wave * envelope * 0.3
+        
+        # Convert to pygame sound
+        sound_array = np.array([sound_array, sound_array]).T
+        sound_array = (sound_array * 32767).astype(np.int16)
+        return pygame.sndarray.make_sound(sound_array)
+    
+    def generate_death_sound(self):
+        """Generate a subtle pop for cell death"""
+        duration = 0.15
+        sample_rate = 22050
+        frames = int(duration * sample_rate)
+        
+        # Create a dampened pop sound
+        frequency = 150  # Low frequency
+        wave = np.sin(2 * np.pi * frequency * np.linspace(0, duration, frames))
+        
+        # Sharp attack, quick decay
+        envelope = np.exp(-np.linspace(0, 8, frames))
+        sound_array = wave * envelope * 0.4
+        
+        # Convert to pygame sound
+        sound_array = np.array([sound_array, sound_array]).T
+        sound_array = (sound_array * 32767).astype(np.int16)
+        return pygame.sndarray.make_sound(sound_array)
+    
+    def generate_pattern_sound(self):
+        """Generate a magical sparkle for pattern loading"""
+        duration = 0.8
+        sample_rate = 22050
+        frames = int(duration * sample_rate)
+        
+        # Create ascending sparkle
+        base_freq = 440
+        sound_array = np.zeros(frames)
+        
+        for i in range(5):
+            freq = base_freq * (1.5 ** i)
+            start_frame = i * frames // 8
+            end_frame = start_frame + frames // 4
+            
+            if end_frame > frames:
+                end_frame = frames
+                
+            wave_frames = end_frame - start_frame
+            wave = np.sin(2 * np.pi * freq * np.linspace(0, wave_frames/sample_rate, wave_frames))
+            envelope = np.exp(-np.linspace(0, 2, wave_frames))
+            
+            sound_array[start_frame:end_frame] += wave * envelope * 0.2
+        
+        # Convert to pygame sound
+        sound_array = np.array([sound_array, sound_array]).T
+        sound_array = (sound_array * 32767).astype(np.int16)
+        return pygame.sndarray.make_sound(sound_array)
+    
+    def play_birth(self):
+        if self.enabled:
+            self.birth_sound.set_volume(self.volume)
+            self.birth_sound.play()
+    
+    def play_death(self):
+        if self.enabled:
+            self.death_sound.set_volume(self.volume * 0.6)
+            self.death_sound.play()
+    
+    def play_pattern_load(self):
+        if self.enabled:
+            self.pattern_sound.set_volume(self.volume * 0.8)
+            self.pattern_sound.play()
+    
+    def update_ambient(self, population, max_population):
+        """Update ambient sound based on population density"""
+        if not self.enabled:
+            return
+            
+        # Simple ambient drone that changes with population
+        population_ratio = population / max(max_population, 1)
+        
+        # You could implement ambient music here
+        # For now, we'll keep it simple
+        pass
+    
+    def toggle_sound(self):
+        self.enabled = not self.enabled
+        if not self.enabled:
+            pygame.mixer.stop()
+    
+    def set_volume(self, volume):
+        self.volume = max(0.0, min(1.0, volume))
 
 class Particle:
     def __init__(self, x, y, particle_type="birth"):
@@ -92,6 +212,9 @@ class GameOfLife:
         self.cell_ages = np.zeros((self.rows, self.cols))
         self.dynamic_bg_time = 0
         
+        # Sound System
+        self.sound_system = SoundSystem()
+        
         # Game state
         self.grid = np.zeros((self.rows, self.cols), dtype=int)
         self.next_grid = np.zeros((self.rows, self.cols), dtype=int)
@@ -135,6 +258,8 @@ class GameOfLife:
     
     def update_grid(self):
         new_grid = np.zeros_like(self.grid)
+        births = 0
+        deaths = 0
         
         for i in range(self.grid_height):
             for j in range(self.grid_width):
@@ -153,6 +278,7 @@ class GameOfLife:
                         for _ in range(3):
                             self.particles.append(Particle(x, y, "death"))
                         self.cell_ages[i, j] = 0
+                        deaths += 1
                 else:
                     if neighbors == 3:
                         new_grid[i, j] = 1
@@ -162,9 +288,26 @@ class GameOfLife:
                         for _ in range(5):
                             self.particles.append(Particle(x, y, "birth"))
                         self.cell_ages[i, j] = 1
+                        births += 1
+        
+        # Play sounds based on activity (limit to prevent audio overload)
+        if births > 0:
+            # Play birth sound with probability based on birth count
+            if random.random() < min(births / 10, 0.8):
+                self.sound_system.play_birth()
+        
+        if deaths > 0:
+            # Play death sound with probability based on death count
+            if random.random() < min(deaths / 15, 0.6):
+                self.sound_system.play_death()
         
         self.grid = new_grid
         self.generation += 1
+        
+        # Update ambient sound
+        current_population = np.sum(self.grid)
+        max_population = self.grid_width * self.grid_height
+        self.sound_system.update_ambient(current_population, max_population)
     
     def draw_grid(self):
         # Dynamic background
@@ -235,6 +378,9 @@ class GameOfLife:
         self.cell_ages.fill(0)  # Reset ages
         self.particles.clear()  # Clear particles
         self.trails.clear()  # Clear trails
+        
+        # Play pattern loading sound
+        self.sound_system.play_pattern_load()
         
         if pattern == Pattern.RANDOM:
             self.grid = np.random.choice([0, 1], size=(self.grid_height, self.grid_width), p=[0.8, 0.2])
@@ -348,17 +494,25 @@ class GameOfLife:
         vfx_text = font_small.render(vfx_info, True, (100, 200, 255))
         self.screen.blit(vfx_text, (10, 40))
         
+        # Sound info
+        sound_status = "ON" if self.sound_system.enabled else "OFF"
+        sound_info = f"Sound: {sound_status} | Volume: {int(self.sound_system.volume * 100)}%"
+        sound_text = font_small.render(sound_info, True, (255, 200, 100))
+        self.screen.blit(sound_text, (10, 60))
+        
         controls = [
             "Controls:",
             "SPACE - Play/Pause",
             "C - Clear grid",
             "R - Random pattern",
-            "1-7 - Load patterns",
+            "1-6 - Load patterns",
+            "M - Toggle sound",
+            "+ / - - Volume up/down",
             "Left Click - Toggle cell",
             "ESC - Quit"
         ]
         
-        y_offset = 70
+        y_offset = 90
         for control in controls:
             text = font_small.render(control, True, self.GREEN)
             self.screen.blit(text, (10, y_offset))
@@ -381,10 +535,12 @@ class GameOfLife:
                 for _ in range(3):
                     self.particles.append(Particle(px, py, "birth"))
                 self.cell_ages[grid_y, grid_x] = 1
+                self.sound_system.play_birth()
             else:  # Cell died
                 for _ in range(2):
                     self.particles.append(Particle(px, py, "death"))
                 self.cell_ages[grid_y, grid_x] = 0
+                self.sound_system.play_death()
     
     def run(self):
         self.load_pattern(Pattern.RANDOM)
@@ -428,6 +584,17 @@ class GameOfLife:
                     
                     elif event.key == pygame.K_6:
                         self.load_pattern(Pattern.GOSPER_GLIDER_GUN)
+                    
+                    elif event.key == pygame.K_m:
+                        self.sound_system.toggle_sound()
+                    
+                    elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:
+                        new_volume = min(1.0, self.sound_system.volume + 0.1)
+                        self.sound_system.set_volume(new_volume)
+                    
+                    elif event.key == pygame.K_MINUS:
+                        new_volume = max(0.0, self.sound_system.volume - 0.1)
+                        self.sound_system.set_volume(new_volume)
                 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1 and not self.running:
