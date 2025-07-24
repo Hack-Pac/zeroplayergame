@@ -122,6 +122,17 @@ button:active {
     border: 2px solid #000;
 }
 
+.ai-legend {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #ccc;
+    font-style: italic;
+    border: 1px solid #333;
+    padding: 8px;
+    border-radius: 4px;
+    background: #111;
+}
+
 .instructions {
     margin-top: 30px;
     font-size: 0.9rem;
@@ -354,6 +365,25 @@ button:active {
     padding: 15px;
     background: #f5f5f5;
     border-radius: 5px;
+}
+
+.config-section {
+    margin: 30px 0;
+    padding: 20px;
+    background: #e8f4f8;
+    border-radius: 8px;
+    border: 2px solid #2196F3;
+}
+
+.config-section h4 {
+    color: #1976D2;
+    font-size: 18px;
+    margin-bottom: 15px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #2196F3;
+    padding-bottom: 8px;
 }
 
 .config-item label {
@@ -728,9 +758,9 @@ button:active {
 }
 
 .help-tab {
-    background-color: #2a2a2a;
-    border: 2px solid #444;
-    color: #ccc;
+    background-color: #2a2a2a !important;
+    border: 2px solid #444 !important;
+    color: #ccc !important;
     padding: 10px 20px;
     border-radius: 5px;
     cursor: pointer;
@@ -739,23 +769,23 @@ button:active {
 }
 
 .help-tab:hover {
-    background-color: #333;
-    border-color: #666;
-    color: #fff;
+    background-color: #333 !important;
+    border-color: #666 !important;
+    color: #fff !important;
 }
 
 .help-tab.active {
-    background-color: #4a4a4a;
-    color: #fff;
-    border-color: #666;
+    background-color: #4a4a4a !important;
+    color: #fff !important;
+    border-color: #66ff66 !important;
 }
 
 .help-content-area {
     background-color: #2a2a2a !important;
-    border: 1px solid #444;
+    border: 1px solid #444 !important;
     border-radius: 8px;
-    padding: 20px;
-    color: #e0e0e0;
+    padding: 20px !important;
+    color: #e0e0e0 !important;
 }
 
 .help-section {
@@ -767,14 +797,14 @@ button:active {
 }
 
 .help-section h3 {
-    color: #fff;
+    color: #fff !important;
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 20px;
 }
 
 .help-section h4 {
-    color: #ccc;
+    color: #ccc !important;
     margin-top: 20px;
     margin-bottom: 10px;
     font-size: 16px;
@@ -782,7 +812,7 @@ button:active {
 
 .help-section p {
     line-height: 1.6;
-    color: #bbb;
+    color: #bbb !important;
     margin-bottom: 10px;
 }
 
@@ -795,12 +825,32 @@ button:active {
 .help-section li {
     margin-bottom: 8px;
     line-height: 1.5;
-    color: #bbb;
+    color: #bbb !important;
 }
 
 .help-section strong {
     color: #fff;
     font-weight: bold;
+}
+
+/* Override .description within help modal */
+.help-content .description {
+    background: transparent !important;
+    color: #bbb !important;
+    padding: 0;
+    border: none;
+}
+
+/* Ensure all text within help modal is visible */
+.help-content * {
+    color: inherit;
+}
+
+.help-content code {
+    background-color: #333 !important;
+    color: #66ff66 !important;
+    padding: 2px 4px;
+    border-radius: 3px;
 }
 
 /* Responsive help modal */
@@ -818,139 +868,5 @@ button:active {
         padding: 15px;
     }
 }
-}
 
-.help-tabs {
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-    margin-bottom: 25px;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 10px;
-}
 
-.help-tab {
-    background: #f5f5f5;
-    color: #333;
-    border: 1px solid #ddd;
-    padding: 10px 20px;
-    border-radius: 5px 5px 0 0;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.help-tab:hover {
-    background: #e0e0e0;
-}
-
-.help-tab.active {
-    background: #4CAF50;
-    color: white;
-    border-color: #4CAF50;
-}
-
-.help-content-area {
-    max-height: 500px;
-    overflow-y: auto;
-    padding: 20px;
-    background: #f9f9f9;
-    border-radius: 5px;
-}
-
-.help-section {
-    display: none;
-}
-
-.help-section.active {
-    display: block;
-}
-
-.help-section h3 {
-    color: #333;
-    margin-bottom: 15px;
-    font-size: 22px;
-}
-
-.help-section h4 {
-    color: #555;
-    margin-top: 25px;
-    margin-bottom: 15px;
-    font-size: 18px;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 5px;
-}
-
-.help-rule,
-.help-control,
-.help-config {
-    background: #333;
-    padding: 12px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: 1px solid #555;
-    line-height: 1.6;
-    color: #e0e0e0;
-}
-
-.help-rule strong,
-.help-control strong,
-.help-config strong {
-    color: #66ff66;
-    display: inline-block;
-    margin-right: 10px;
-}
-
-.help-list {
-    margin: 15px 0;
-    padding-left: 25px;
-}
-
-.help-list li {
-    margin: 8px 0;
-    line-height: 1.6;
-    color: #bbb;
-}
-
-.help-list ul {
-    margin-top: 10px;
-    padding-left: 20px;
-}
-
-.help-list ul li {
-    list-style-type: circle;
-}
-
-ol.help-list {
-    counter-reset: item;
-}
-
-ol.help-list li {
-    display: block;
-    margin-bottom: 12px;
-}
-
-ol.help-list li:before {
-    content: counter(item) ". ";
-    counter-increment: item;
-    color: #66ff66;
-    font-weight: bold;
-}
-
-/* Responsive help modal */
-@media (max-width: 768px) {
-    .help-tabs {
-        flex-wrap: wrap;
-    }
-    
-    .help-tab {
-        font-size: 12px;
-        padding: 8px 12px;
-    }
-    
-    .help-content-area {
-        padding: 15px;
-        max-height: 400px;
-    }
-}

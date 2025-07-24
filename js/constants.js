@@ -64,3 +64,39 @@ export const GIF_DEFAULTS = {
     scale: 0.5,
     captureInterval: 1
 };
+
+// Formation patterns for analytics detection
+export const FORMATION_PATTERNS = {
+    'Glider': [
+        [0, 1, 0],
+        [0, 0, 1],
+        [1, 1, 1]
+    ],
+    'Block': [
+        [1, 1],
+        [1, 1]
+    ],
+    'Blinker': [
+        [1, 1, 1]
+    ],
+    'Toad': [
+        [0, 1, 1, 1],
+        [1, 1, 1, 0]
+    ]
+};
+
+// AI Strategies for advanced behavior
+export const AI_STRATEGIES = {
+    AGGRESSIVE: 'aggressive',
+    DEFENSIVE: 'defensive',
+    OPPORTUNISTIC: 'opportunistic',
+    TERRITORIAL: 'territorial',
+    COLLABORATIVE: 'collaborative'
+};
+
+// Resource types for competition tracking
+export const RESOURCE_TYPES = {
+    ENERGY: 'energy',
+    TERRITORY: 'territory',
+    ALLIANCE: 'alliance'
+};

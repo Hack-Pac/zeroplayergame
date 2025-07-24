@@ -49,6 +49,10 @@
             <div class="stat" id="stat4">Yellow: <span>0</span></div>
         </div>
         
+        <div class="ai-legend" id="aiLegend" style="display: none;">
+            <small>AI Status: Population | Strategy | ⚠️Threat | 🤝Alliances | 💎Resources</small>
+        </div>
+        
         <canvas id="gameCanvas"></canvas>
         
         <div class="controls">
@@ -162,6 +166,57 @@
                     <input type="range" id="herdRate" min="0" max="100" value="50">
                     <span class="value-display">0.5</span>
                     <p class="description">How closely team cells stick together. Higher values create tighter formations.</p>
+                </div>
+                
+                <div class="config-section">
+                    <h4>Advanced AI Behaviors</h4>
+                    
+                    <div class="config-item">
+                        <label for="strategy">Strategy</label>
+                        <select id="strategy">
+                            <option value="aggressive">Aggressive - Focus on attack and expansion</option>
+                            <option value="defensive">Defensive - Prioritize defense and consolidation</option>
+                            <option value="opportunistic" selected>Opportunistic - Exploit weaknesses and expand</option>
+                            <option value="territorial">Territorial - Defend and expand territory</option>
+                            <option value="nomadic">Nomadic - Constantly move and attack</option>
+                        </select>
+                        <p class="description">The overall strategic approach this team will take during gameplay.</p>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="formationPreference">Formation Preference</label>
+                        <select id="formationPreference">
+                            <option value="defensive">Defensive Wall - Creates protective barriers</option>
+                            <option value="offensive">Spear Formation - Focuses on piercing attacks</option>
+                            <option value="swarm" selected>Swarm Cluster - Distributed attack pattern</option>
+                            <option value="reconnaissance">Scout Formation - Exploratory pattern</option>
+                        </select>
+                        <p class="description">The preferred formation pattern for team coordination.</p>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="adaptability">Adaptability</label>
+                        <input type="range" id="adaptability" min="0" max="100" value="50">
+                        <span class="value-display">0.5</span>
+                        <p class="description">How quickly the team adapts strategies to threats. Higher values enable faster strategic switching.</p>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="cooperation">Cooperation</label>
+                        <input type="range" id="cooperation" min="0" max="100" value="50">
+                        <span class="value-display">0.5</span>
+                        <p class="description">Likelihood to form alliances with other teams. Higher values enable team cooperation against common threats.</p>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="resourcePriority">Resource Priority</label>
+                        <select id="resourcePriority">
+                            <option value="energy" selected>Energy - Increases reproduction rate</option>
+                            <option value="territory">Territory - Boosts expansion abilities</option>
+                            <option value="shield">Shield - Enhances defensive capabilities</option>
+                        </select>
+                        <p class="description">The type of resource this team will prioritize when competing for limited resources.</p>
+                    </div>
                 </div>
             </div>
             

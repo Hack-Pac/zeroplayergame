@@ -4,7 +4,7 @@ import {
     CANVAS_WIDTH, CANVAS_HEIGHT, CELL_SIZE, 
     DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT, 
     FADE_IN_DURATION, DEFAULT_SPEED, 
-    TEAM_COLORS, GAME_FORMULAS, FIELD_SIZE 
+    TEAM_COLORS, GAME_FORMULAS 
 } from './constants.js';
 import { Camera } from './camera.js';
 import { TeamConfigManager } from './teamConfig.js';
@@ -13,6 +13,8 @@ import { GifShowcaseManager } from './gifShowcase.js';
 import { HelpManager } from './help.js';
 import { PIXEL_FONT } from './pixelFont.js';
 import { loadPattern } from './patterns.js';
+import { AdvancedAI } from './advancedAI.js';
+import { BattleAnalytics } from './analytics.js';
 
 export class GameOfLife {
     constructor() {
@@ -32,6 +34,8 @@ export class GameOfLife {
         this.gifShowcaseManager = new GifShowcaseManager();
         this.gifRecorder = new GifRecorder(this, this.gifShowcaseManager);
         this.helpManager = new HelpManager();
+        this.advancedAI = new AdvancedAI(this);
+        this.analytics = new BattleAnalytics(this);
         
         // Game state
         this.grid = this.createGrid();
@@ -45,6 +49,7 @@ export class GameOfLife {
         this.teamColors = TEAM_COLORS;
         this.formulas = GAME_FORMULAS;
         this.teamMode = false;
+        this.teamSizes = { 1: 0, 2: 0, 3: 0, 4: 0 }; // Track team sizes for AI
         
         // Mouse state
         this.mouse = {
@@ -347,6 +352,13 @@ export class GameOfLife {
         
         // Apply intelligence-based movement for cells at the edge of groups
         if (this.teamMode) {
+            // Update team sizes for AI system
+            this.teamSizes = teamSizes;
+            
+            // Run advanced AI system
+            this.advancedAI.update(newGrid, teamSizes, teamPositions);
+            
+            // Apply traditional intelligent behavior
             this.applyIntelligentBehavior(newGrid, teamSizes, teamPositions);
         }
         
@@ -355,6 +367,9 @@ export class GameOfLife {
         this.generation++;
         this.updateInfo();
         if (this.teamMode) this.updateTeamStats();
+        
+        // Update analytics
+        this.analytics.update();
         
         // Capture frame if recording GIF
         if (this.gifRecorder.isRecording()) {
@@ -372,9 +387,14 @@ export class GameOfLife {
             for (const cell of edgeCells) {
                 const { x, y } = cell;
                 
-                const direction = this.calculateIntelligentDirection(
-                    team, x, y, teamSizes, teamPositions, config
-                );
+                // Use advanced AI for strategic direction, fallback to basic AI
+                let direction = this.advancedAI.getStrategicDirection(team, x, y, teamSizes, teamPositions);
+                
+                if (!direction) {
+                    direction = this.calculateIntelligentDirection(
+                        team, x, y, teamSizes, teamPositions, config
+                    );
+                }
                 
                 if (direction) {
                     const newX = x + direction.dx;
@@ -386,7 +406,10 @@ export class GameOfLife {
                         
                         const herdChance = this.calculateHerdChance(team, newX, newY, config.herdRate);
                         
-                        if (Math.random() < herdChance) {
+                        // Increase chance for strategic moves
+                        const strategicBonus = direction.strategic ? 0.3 : 0;
+                        
+                        if (Math.random() < herdChance + strategicBonus) {
                             grid[newY][newX] = team;
                             this.cellAges[newY][newX] = 0;
                         }
@@ -566,6 +589,11 @@ export class GameOfLife {
             }
         }
         
+        // Draw resources (advanced AI feature)
+        if (this.teamMode) {
+            this.advancedAI.drawResources(this.ctx, this.camera, this.cellSize);
+        }
+        
         // Restore context state
         this.ctx.restore();
     }
@@ -597,6 +625,10 @@ export class GameOfLife {
         this.updateInfo();
         this.teamMode = false;
         document.getElementById('teamStats').style.display = 'none';
+        
+        // Reset analytics
+        this.analytics.reset();
+        
         this.draw();
     }
     
@@ -681,8 +713,33 @@ export class GameOfLife {
         }
         
         for (let team = 1; team <= 4; team++) {
-            document.querySelector(`#stat${team} span`).textContent = counts[team];
+            const statElement = document.querySelector(`#stat${team} span`);
+            const teamInfo = this.advancedAI.getTeamInfo(team);
+            
+            // Enhanced display with AI info
+            let displayText = `${counts[team]}`;
+            
+            if (counts[team] > 0) {
+                displayText += ` | ${teamInfo.strategy.charAt(0).toUpperCase()}`;
+                
+                if (teamInfo.threat) {
+                    displayText += ` | ⚠️${teamInfo.threat}`;
+                }
+                
+                if (teamInfo.alliances.length > 0) {
+                    displayText += ` | 🤝${teamInfo.alliances.join(',')}`;
+                }
+                
+                if (teamInfo.resources > 0) {
+                    displayText += ` | 💎${teamInfo.resources}`;
+                }
+            }
+            
+            statElement.textContent = displayText;
         }
+        
+        // Show AI legend when team mode is active
+        document.getElementById('aiLegend').style.display = this.teamMode ? 'block' : 'none';
     }
     
     drawName() {
