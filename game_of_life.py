@@ -1,6 +1,8 @@
 import pygame
 import numpy as np
 import sys
+import math
+import random
 from enum import Enum
 
 class Pattern(Enum):
@@ -12,23 +14,109 @@ class Pattern(Enum):
     PULSAR = "Pulsar"
     GOSPER_GLIDER_GUN = "Gosper Glider Gun"
 
+class Particle:
+    def __init__(self, x, y, particle_type="birth"):
+        self.x = x
+        self.y = y
+        self.vx = random.uniform(-2, 2)
+        self.vy = random.uniform(-2, 2)
+        self.life = 30
+        self.max_life = 30
+        self.size = random.uniform(2, 6)
+        self.particle_type = particle_type
+        
+        if particle_type == "birth":
+            self.color = (0, 255, 100)
+        elif particle_type == "death":
+            self.color = (255, 50, 50)
+        else:
+            self.color = (255, 255, 255)
+    
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.life -= 1
+        self.vx *= 0.98  # Air resistance
+        self.vy *= 0.98
+        
+        # Fade out
+        alpha = self.life / self.max_life
+        self.color = tuple(int(c * alpha) for c in self.color)
+        self.size *= 0.98
+        
+        return self.life > 0
+    
+    def draw(self, screen):
+        if self.life > 0:
+            pygame.draw.circle(screen, self.color, 
+                             (int(self.x), int(self.y)), 
+                             max(1, int(self.size)))
+
+class Trail:
+    def __init__(self):
+        self.points = []
+        self.max_length = 20
+    
+    def add_point(self, x, y, color):
+        self.points.append({
+            'x': x, 'y': y, 'color': color, 'life': self.max_length
+        })
+        if len(self.points) > self.max_length:
+            self.points.pop(0)
+    
+    def update(self):
+        for point in self.points:
+            point['life'] -= 1
+        self.points = [p for p in self.points if p['life'] > 0]
+    
+    def draw(self, screen):
+        for i, point in enumerate(self.points):
+            alpha = point['life'] / self.max_length
+            color = tuple(int(c * alpha) for c in point['color'])
+            size = max(1, int(alpha * 3))
+            pygame.draw.circle(screen, color, 
+                             (point['x'], point['y']), size)
+
 class GameOfLife:
     def __init__(self, width=800, height=600, cell_size=10):
+        pygame.init()
         self.width = width
         self.height = height
         self.cell_size = cell_size
-        self.grid_width = width // cell_size
-        self.grid_height = height // cell_size
+        self.cols = width // cell_size
+        self.rows = height // cell_size
         
-        self.grid = np.zeros((self.grid_height, self.grid_width), dtype=int)
+        # VFX Systems
+        self.particles = []
+        self.trails = {}
+        self.cell_ages = np.zeros((self.rows, self.cols))
+        self.dynamic_bg_time = 0
+        
+        # Game state
+        self.grid = np.zeros((self.rows, self.cols), dtype=int)
+        self.next_grid = np.zeros((self.rows, self.cols), dtype=int)
+        
+        # Display
+        self.screen = pygame.display.set_mode((width, height))
+        pygame.display.set_caption("Game of Life with VFX")
+        self.clock = pygame.time.Clock()
+        
+        # Colors
+        self.dead_color = (20, 20, 30)
+        self.alive_color = (255, 255, 255)
+        self.particle_colors = {
+            'birth': (0, 255, 100),
+            'death': (255, 50, 50),
+            'stable': (100, 100, 255)
+        }
+        
+        # Additional attributes from original class
+        self.grid_width = self.cols
+        self.grid_height = self.rows
         self.running = False
         self.generation = 0
         
-        pygame.init()
-        self.screen = pygame.display.set_mode((width, height))
-        pygame.display.set_caption("Conway's Game of Life - Zero Player Game")
-        self.clock = pygame.time.Clock()
-        
+        # Original colors for compatibility
         self.BLACK = (0, 0, 0)
         self.WHITE = (255, 255, 255)
         self.GRAY = (128, 128, 128)
@@ -51,38 +139,113 @@ class GameOfLife:
         for i in range(self.grid_height):
             for j in range(self.grid_width):
                 neighbors = self.count_neighbors(i, j)
+                old_state = self.grid[i, j]
                 
-                if self.grid[i, j] == 1:
+                if old_state == 1:
                     if neighbors in [2, 3]:
                         new_grid[i, j] = 1
+                        # Cell survives - increment age
+                        self.cell_ages[i, j] += 1
+                    else:
+                        # Cell dies - create death particle
+                        x = j * self.cell_size + self.cell_size // 2
+                        y = i * self.cell_size + self.cell_size // 2
+                        for _ in range(3):
+                            self.particles.append(Particle(x, y, "death"))
+                        self.cell_ages[i, j] = 0
                 else:
                     if neighbors == 3:
                         new_grid[i, j] = 1
+                        # Cell born - create birth particle
+                        x = j * self.cell_size + self.cell_size // 2
+                        y = i * self.cell_size + self.cell_size // 2
+                        for _ in range(5):
+                            self.particles.append(Particle(x, y, "birth"))
+                        self.cell_ages[i, j] = 1
         
         self.grid = new_grid
         self.generation += 1
     
     def draw_grid(self):
-        self.screen.fill(self.BLACK)
+        # Dynamic background
+        self.dynamic_bg_time += 0.02
+        bg_intensity = 10 + 5 * math.sin(self.dynamic_bg_time)
+        bg_color = (int(bg_intensity), int(bg_intensity), int(bg_intensity * 1.5))
+        self.screen.fill(bg_color)
         
+        # Draw cells with age-based coloring
         for i in range(self.grid_height):
             for j in range(self.grid_width):
                 x = j * self.cell_size
                 y = i * self.cell_size
                 
                 if self.grid[i, j] == 1:
-                    pygame.draw.rect(self.screen, self.WHITE, 
+                    # Age-based coloring
+                    age = min(self.cell_ages[i, j], 50)
+                    age_factor = age / 50
+                    
+                    # Color interpolation from young (green) to old (red)
+                    red = int(255 * age_factor)
+                    green = int(255 * (1 - age_factor * 0.5))
+                    blue = int(100 * (1 - age_factor))
+                    
+                    color = (red, green, blue)
+                    
+                    # Pulsing effect for old cells
+                    if age > 30:
+                        pulse = 0.8 + 0.2 * math.sin(self.dynamic_bg_time * 5)
+                        color = tuple(int(c * pulse) for c in color)
+                    
+                    pygame.draw.rect(self.screen, color, 
                                    (x, y, self.cell_size - 1, self.cell_size - 1))
+                    
+                    # Add trail
+                    trail_key = (i, j)
+                    if trail_key not in self.trails:
+                        self.trails[trail_key] = Trail()
+                    self.trails[trail_key].add_point(
+                        x + self.cell_size // 2, 
+                        y + self.cell_size // 2, 
+                        color
+                    )
                 else:
-                    pygame.draw.rect(self.screen, self.GRAY, 
+                    # Draw grid lines for empty cells
+                    pygame.draw.rect(self.screen, (40, 40, 60), 
                                    (x, y, self.cell_size - 1, self.cell_size - 1), 1)
+        
+        # Update and draw trails
+        for trail in list(self.trails.values()):
+            trail.update()
+            trail.draw(self.screen)
+        
+        # Clean up empty trails
+        self.trails = {k: v for k, v in self.trails.items() if v.points}
+        
+        # Update and draw particles
+        active_particles = []
+        for particle in self.particles:
+            if particle.update():
+                particle.draw(self.screen)
+                active_particles.append(particle)
+        self.particles = active_particles
     
     def load_pattern(self, pattern):
         self.grid.fill(0)
         self.generation = 0
+        self.cell_ages.fill(0)  # Reset ages
+        self.particles.clear()  # Clear particles
+        self.trails.clear()  # Clear trails
         
         if pattern == Pattern.RANDOM:
             self.grid = np.random.choice([0, 1], size=(self.grid_height, self.grid_width), p=[0.8, 0.2])
+            # Add spawn particles for random pattern
+            for i in range(self.grid_height):
+                for j in range(self.grid_width):
+                    if self.grid[i, j] == 1:
+                        x = j * self.cell_size + self.cell_size // 2
+                        y = i * self.cell_size + self.cell_size // 2
+                        self.particles.append(Particle(x, y, "birth"))
+                        self.cell_ages[i, j] = 1
         
         elif pattern == Pattern.GLIDER:
             x, y = self.grid_height // 2, self.grid_width // 2
@@ -90,12 +253,22 @@ class GameOfLife:
             for dx, dy in glider:
                 if 0 <= x + dx < self.grid_height and 0 <= y + dy < self.grid_width:
                     self.grid[x + dx, y + dy] = 1
+                    # Add spawn particle
+                    px = (y + dy) * self.cell_size + self.cell_size // 2
+                    py = (x + dx) * self.cell_size + self.cell_size // 2
+                    self.particles.append(Particle(px, py, "birth"))
+                    self.cell_ages[x + dx, y + dy] = 1
         
         elif pattern == Pattern.BLINKER:
             x, y = self.grid_height // 2, self.grid_width // 2
             for i in range(3):
                 if 0 <= x < self.grid_height and 0 <= y + i < self.grid_width:
                     self.grid[x, y + i] = 1
+                    # Add spawn particle
+                    px = (y + i) * self.cell_size + self.cell_size // 2
+                    py = x * self.cell_size + self.cell_size // 2
+                    self.particles.append(Particle(px, py, "birth"))
+                    self.cell_ages[x, y + i] = 1
         
         elif pattern == Pattern.TOAD:
             x, y = self.grid_height // 2, self.grid_width // 2
@@ -103,6 +276,11 @@ class GameOfLife:
             for dx, dy in toad:
                 if 0 <= x + dx < self.grid_height and 0 <= y + dy < self.grid_width:
                     self.grid[x + dx, y + dy] = 1
+                    # Add spawn particle
+                    px = (y + dy) * self.cell_size + self.cell_size // 2
+                    py = (x + dx) * self.cell_size + self.cell_size // 2
+                    self.particles.append(Particle(px, py, "birth"))
+                    self.cell_ages[x + dx, y + dy] = 1
         
         elif pattern == Pattern.BEACON:
             x, y = self.grid_height // 2, self.grid_width // 2
@@ -110,6 +288,11 @@ class GameOfLife:
             for dx, dy in beacon:
                 if 0 <= x + dx < self.grid_height and 0 <= y + dy < self.grid_width:
                     self.grid[x + dx, y + dy] = 1
+                    # Add spawn particle
+                    px = (y + dy) * self.cell_size + self.cell_size // 2
+                    py = (x + dx) * self.cell_size + self.cell_size // 2
+                    self.particles.append(Particle(px, py, "birth"))
+                    self.cell_ages[x + dx, y + dy] = 1
         
         elif pattern == Pattern.PULSAR:
             x, y = self.grid_height // 2 - 6, self.grid_width // 2 - 6
@@ -128,6 +311,11 @@ class GameOfLife:
             for dx, dy in pulsar:
                 if 0 <= x + dx < self.grid_height and 0 <= y + dy < self.grid_width:
                     self.grid[x + dx, y + dy] = 1
+                    # Add spawn particle
+                    px = (y + dy) * self.cell_size + self.cell_size // 2
+                    py = (x + dx) * self.cell_size + self.cell_size // 2
+                    self.particles.append(Particle(px, py, "birth"))
+                    self.cell_ages[x + dx, y + dy] = 1
         
         elif pattern == Pattern.GOSPER_GLIDER_GUN:
             x, y = 10, 10
@@ -140,15 +328,26 @@ class GameOfLife:
             for dx, dy in gun:
                 if 0 <= x + dx < self.grid_height and 0 <= y + dy < self.grid_width:
                     self.grid[x + dx, y + dy] = 1
+                    # Add spawn particle
+                    px = (y + dy) * self.cell_size + self.cell_size // 2
+                    py = (x + dx) * self.cell_size + self.cell_size // 2
+                    self.particles.append(Particle(px, py, "birth"))
+                    self.cell_ages[x + dx, y + dy] = 1
     
     def draw_info(self):
         font = pygame.font.Font(None, 36)
         status = 'Running' if self.running else 'Paused'
-        info_text = f"Generation: {self.generation} | {status}"
+        alive_cells = np.sum(self.grid)
+        info_text = f"Gen: {self.generation} | {status} | Cells: {alive_cells}"
         text = font.render(info_text, True, self.GREEN)
         self.screen.blit(text, (10, 10))
         
+        # VFX info
         font_small = pygame.font.Font(None, 24)
+        vfx_info = f"Particles: {len(self.particles)} | Trails: {len(self.trails)}"
+        vfx_text = font_small.render(vfx_info, True, (100, 200, 255))
+        self.screen.blit(vfx_text, (10, 40))
+        
         controls = [
             "Controls:",
             "SPACE - Play/Pause",
@@ -159,7 +358,7 @@ class GameOfLife:
             "ESC - Quit"
         ]
         
-        y_offset = 50
+        y_offset = 70
         for control in controls:
             text = font_small.render(control, True, self.GREEN)
             self.screen.blit(text, (10, y_offset))
@@ -171,7 +370,21 @@ class GameOfLife:
         grid_y = y // self.cell_size
         
         if 0 <= grid_x < self.grid_width and 0 <= grid_y < self.grid_height:
-            self.grid[grid_y, grid_x] = 1 - self.grid[grid_y, grid_x]
+            old_state = self.grid[grid_y, grid_x]
+            self.grid[grid_y, grid_x] = 1 - old_state
+            
+            # Add particle effect based on the action
+            px = grid_x * self.cell_size + self.cell_size // 2
+            py = grid_y * self.cell_size + self.cell_size // 2
+            
+            if old_state == 0:  # Cell was born
+                for _ in range(3):
+                    self.particles.append(Particle(px, py, "birth"))
+                self.cell_ages[grid_y, grid_x] = 1
+            else:  # Cell died
+                for _ in range(2):
+                    self.particles.append(Particle(px, py, "death"))
+                self.cell_ages[grid_y, grid_x] = 0
     
     def run(self):
         self.load_pattern(Pattern.RANDOM)
