@@ -124,6 +124,47 @@ zeroplayergame/
         └── gif.worker.js
 ```
 
+## Python Implementation
+
+The standalone Python version (`game_of_life.py`) offers advanced features for experimentation and analysis:
+
+### Visual Effects System
+- Particle effects for cell births and deaths
+- Trail systems showing cell evolution patterns
+- Glow effects highlighting active regions
+- Customizable particle behaviors and lifespans
+
+### Procedural Sound Engine
+- Dynamic audio generation based on simulation events
+- Frequency modulation reflecting population density
+- Harmonic patterns corresponding to stable structures
+- Real-time synthesis without external audio files
+
+### Advanced Drawing Tools
+- **Brush Tool**: Variable size cell painting with pressure sensitivity
+- **Line Tool**: Precise straight-line cell placement
+- **Rectangle Tool**: Rapid area filling and clearing
+- **Circle Tool**: Circular pattern generation
+- **Erase Tool**: Selective cell removal with adjustable radius
+
+### Analytics and Metrics
+- Population statistics and growth rate analysis
+- Pattern recognition and classification
+- Spatial distribution mapping
+- Performance profiling and optimization data
+
+### Running the Python Version
+
+```bash
+# Install dependencies
+pip install pygame numpy
+
+# Run the enhanced version
+python game_of_life.py
+```
+
+The Python implementation serves as a testing ground for new features and provides a foundation for advanced Conway's Game of Life research.
+
 ## Configuration
 
 ### Server Settings

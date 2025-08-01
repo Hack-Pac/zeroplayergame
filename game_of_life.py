@@ -15,6 +15,130 @@ class Pattern(Enum):
     PULSAR = "Pulsar"
     GOSPER_GLIDER_GUN = "Gosper Glider Gun"
 
+class DrawingTool(Enum):
+    SINGLE = "Single Cell"
+    CIRCLE = "Circle Brush"
+    SQUARE = "Square Brush"
+    LINE = "Line Tool"
+    SPRAY = "Spray Tool"
+    FILL = "Fill Tool"
+    ERASER = "Eraser"
+
+class DrawingSystem:
+    def __init__(self):
+        self.current_tool = DrawingTool.SINGLE
+        self.brush_size = 3
+        self.is_drawing = False
+        self.draw_mode = True  # True for draw, False for erase
+        self.last_pos = None
+        self.line_start = None
+        self.preview_cells = set()
+        
+    def get_affected_cells(self, grid_x, grid_y, tool, size, grid_width, grid_height):
+        """Get all cells affected by the current tool"""
+        cells = set()
+        
+        if tool == DrawingTool.SINGLE:
+            if 0 <= grid_x < grid_width and 0 <= grid_y < grid_height:
+                cells.add((grid_x, grid_y))
+                
+        elif tool == DrawingTool.CIRCLE:
+            for dy in range(-size, size + 1):
+                for dx in range(-size, size + 1):
+                    if dx*dx + dy*dy <= size*size:
+                        nx, ny = grid_x + dx, grid_y + dy
+                        if 0 <= nx < grid_width and 0 <= ny < grid_height:
+                            cells.add((nx, ny))
+                            
+        elif tool == DrawingTool.SQUARE:
+            for dy in range(-size, size + 1):
+                for dx in range(-size, size + 1):
+                    nx, ny = grid_x + dx, grid_y + dy
+                    if 0 <= nx < grid_width and 0 <= ny < grid_height:
+                        cells.add((nx, ny))
+                        
+        elif tool == DrawingTool.SPRAY:
+            # Random spray pattern
+            spray_density = 0.6
+            spray_radius = size
+            for _ in range(int(size * size * spray_density)):
+                angle = random.uniform(0, 2 * math.pi)
+                distance = random.uniform(0, spray_radius)
+                dx = int(distance * math.cos(angle))
+                dy = int(distance * math.sin(angle))
+                nx, ny = grid_x + dx, grid_y + dy
+                if 0 <= nx < grid_width and 0 <= ny < grid_height:
+                    cells.add((nx, ny))
+                    
+        elif tool == DrawingTool.LINE and self.line_start:
+            # Bresenham line algorithm
+            x0, y0 = self.line_start
+            x1, y1 = grid_x, grid_y
+            cells.update(self.get_line_cells(x0, y0, x1, y1, grid_width, grid_height))
+            
+        return cells
+    
+    def get_line_cells(self, x0, y0, x1, y1, grid_width, grid_height):
+        """Bresenham line algorithm"""
+        cells = set()
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+        x_step = 1 if x0 < x1 else -1
+        y_step = 1 if y0 < y1 else -1
+        error = dx - dy
+        
+        x, y = x0, y0
+        while True:
+            if 0 <= x < grid_width and 0 <= y < grid_height:
+                cells.add((x, y))
+            
+            if x == x1 and y == y1:
+                break
+                
+            error2 = 2 * error
+            if error2 > -dy:
+                error -= dy
+                x += x_step
+            if error2 < dx:
+                error += dx
+                y += y_step
+                
+        return cells
+    
+    def flood_fill(self, grid, start_x, start_y, target_value, new_value):
+        """Flood fill algorithm for fill tool"""
+        if target_value == new_value:
+            return set()
+            
+        grid_height, grid_width = grid.shape
+        if not (0 <= start_x < grid_width and 0 <= start_y < grid_height):
+            return set()
+            
+        if grid[start_y, start_x] != target_value:
+            return set()
+            
+        filled_cells = set()
+        stack = [(start_x, start_y)]
+        
+        while stack:
+            x, y = stack.pop()
+            if (x, y) in filled_cells:
+                continue
+                
+            if not (0 <= x < grid_width and 0 <= y < grid_height):
+                continue
+                
+            if grid[y, x] != target_value:
+                continue
+                
+            filled_cells.add((x, y))
+            
+            # Add neighbors
+            for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                stack.append((x + dx, y + dy))
+                
+        return filled_cells
+
 class SoundSystem:
     def __init__(self):
         pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
@@ -215,6 +339,9 @@ class GameOfLife:
         # Sound System
         self.sound_system = SoundSystem()
         
+        # Drawing System
+        self.drawing_system = DrawingSystem()
+        
         # Game state
         self.grid = np.zeros((self.rows, self.cols), dtype=int)
         self.next_grid = np.zeros((self.rows, self.cols), dtype=int)
@@ -371,6 +498,63 @@ class GameOfLife:
                 particle.draw(self.screen)
                 active_particles.append(particle)
         self.particles = active_particles
+        
+        # Draw tool preview
+        self.draw_tool_preview()
+    
+    def draw_tool_preview(self):
+        """Draw preview of current tool at mouse position"""
+        if self.running:
+            return  # Don't show preview while running
+            
+        mouse_pos = pygame.mouse.get_pos()
+        grid_x = mouse_pos[0] // self.cell_size
+        grid_y = mouse_pos[1] // self.cell_size
+        
+        if not (0 <= grid_x < self.grid_width and 0 <= grid_y < self.grid_height):
+            return
+        
+        # Draw line start indicator if line tool is active
+        if (self.drawing_system.current_tool == DrawingTool.LINE and 
+            self.drawing_system.line_start is not None):
+            start_x, start_y = self.drawing_system.line_start
+            # Draw line start marker
+            start_screen_x = start_x * self.cell_size + self.cell_size // 2
+            start_screen_y = start_y * self.cell_size + self.cell_size // 2
+            pygame.draw.circle(self.screen, (255, 255, 0), 
+                             (start_screen_x, start_screen_y), 5)
+            
+            # Draw preview line
+            end_screen_x = grid_x * self.cell_size + self.cell_size // 2
+            end_screen_y = grid_y * self.cell_size + self.cell_size // 2
+            pygame.draw.line(self.screen, (255, 255, 0),
+                           (start_screen_x, start_screen_y),
+                           (end_screen_x, end_screen_y), 2)
+            return
+            
+        # Get preview cells for other tools
+        preview_cells = self.drawing_system.get_affected_cells(
+            grid_x, grid_y, 
+            self.drawing_system.current_tool, 
+            self.drawing_system.brush_size,
+            self.grid_width, self.grid_height
+        )
+        
+        # Draw preview with semi-transparent overlay
+        for px, py in preview_cells:
+            x = px * self.cell_size
+            y = py * self.cell_size
+            
+            # Create semi-transparent preview
+            preview_surface = pygame.Surface((self.cell_size, self.cell_size))
+            preview_surface.set_alpha(100)
+            
+            if self.drawing_system.draw_mode:
+                preview_surface.fill((0, 255, 0))  # Green for drawing
+            else:
+                preview_surface.fill((255, 0, 0))  # Red for erasing
+                
+            self.screen.blit(preview_surface, (x, y))
     
     def load_pattern(self, pattern):
         self.grid.fill(0)
@@ -500,47 +684,140 @@ class GameOfLife:
         sound_text = font_small.render(sound_info, True, (255, 200, 100))
         self.screen.blit(sound_text, (10, 60))
         
+        # Drawing tool info
+        tool_name = self.drawing_system.current_tool.value
+        brush_info = f"Tool: {tool_name} | Size: {self.drawing_system.brush_size}"
+        brush_text = font_small.render(brush_info, True, (200, 100, 255))
+        self.screen.blit(brush_text, (10, 80))
+        
         controls = [
             "Controls:",
-            "SPACE - Play/Pause",
-            "C - Clear grid",
-            "R - Random pattern",
-            "1-6 - Load patterns",
-            "M - Toggle sound",
-            "+ / - - Volume up/down",
-            "Left Click - Toggle cell",
+            "SPACE - Play/Pause | C - Clear | R - Random",
+            "1-6 - Load patterns | M - Sound | +/- Volume",
+            "",
+            "Drawing Tools:",
+            "T - Cycle tools | [/] - Brush size",
+            "Q - Single | W - Circle | E - Square",
+            "L - Line | S - Spray | F - Fill | X - Eraser",
+            "Left Click - Draw | Right Click - Erase",
             "ESC - Quit"
         ]
         
-        y_offset = 90
+        y_offset = 110
         for control in controls:
             text = font_small.render(control, True, self.GREEN)
             self.screen.blit(text, (10, y_offset))
             y_offset += 25
     
-    def handle_mouse_click(self, pos):
+    def handle_mouse_click(self, pos, button):
+        """Handle mouse clicks with drawing tools"""
+        if self.running:
+            return  # Don't allow drawing while running
+            
         x, y = pos
         grid_x = x // self.cell_size
         grid_y = y // self.cell_size
         
-        if 0 <= grid_x < self.grid_width and 0 <= grid_y < self.grid_height:
-            old_state = self.grid[grid_y, grid_x]
-            self.grid[grid_y, grid_x] = 1 - old_state
+        if not (0 <= grid_x < self.grid_width and 0 <= grid_y < self.grid_height):
+            return
             
-            # Add particle effect based on the action
-            px = grid_x * self.cell_size + self.cell_size // 2
-            py = grid_y * self.cell_size + self.cell_size // 2
+        # Set draw mode based on button
+        if button == 1:  # Left click - draw
+            self.drawing_system.draw_mode = True
+        elif button == 3:  # Right click - erase
+            self.drawing_system.draw_mode = False
+        else:
+            return
             
-            if old_state == 0:  # Cell was born
-                for _ in range(3):
-                    self.particles.append(Particle(px, py, "birth"))
-                self.cell_ages[grid_y, grid_x] = 1
-                self.sound_system.play_birth()
-            else:  # Cell died
-                for _ in range(2):
-                    self.particles.append(Particle(px, py, "death"))
-                self.cell_ages[grid_y, grid_x] = 0
-                self.sound_system.play_death()
+        # Handle different tools
+        if self.drawing_system.current_tool == DrawingTool.LINE:
+            if self.drawing_system.line_start is None:
+                # Start line
+                self.drawing_system.line_start = (grid_x, grid_y)
+                return
+            else:
+                # End line and draw
+                affected_cells = self.drawing_system.get_affected_cells(
+                    grid_x, grid_y, DrawingTool.LINE, 
+                    self.drawing_system.brush_size,
+                    self.grid_width, self.grid_height
+                )
+                self.apply_drawing(affected_cells)
+                self.drawing_system.line_start = None
+                
+        elif self.drawing_system.current_tool == DrawingTool.FILL:
+            # Flood fill
+            target_value = self.grid[grid_y, grid_x]
+            new_value = 1 if self.drawing_system.draw_mode else 0
+            
+            if target_value != new_value:
+                filled_cells = self.drawing_system.flood_fill(
+                    self.grid, grid_x, grid_y, target_value, new_value
+                )
+                self.apply_drawing(filled_cells)
+                
+        else:
+            # Standard tools
+            affected_cells = self.drawing_system.get_affected_cells(
+                grid_x, grid_y, self.drawing_system.current_tool,
+                self.drawing_system.brush_size,
+                self.grid_width, self.grid_height
+            )
+            self.apply_drawing(affected_cells)
+    
+    def handle_mouse_drag(self, pos):
+        """Handle mouse dragging for continuous drawing"""
+        if not self.drawing_system.is_drawing or self.running:
+            return
+            
+        x, y = pos
+        grid_x = x // self.cell_size
+        grid_y = y // self.cell_size
+        
+        if not (0 <= grid_x < self.grid_width and 0 <= grid_y < self.grid_height):
+            return
+            
+        # Skip if same position as last drag
+        if self.drawing_system.last_pos == (grid_x, grid_y):
+            return
+            
+        self.drawing_system.last_pos = (grid_x, grid_y)
+        
+        # Only allow drag drawing for certain tools
+        if self.drawing_system.current_tool in [DrawingTool.SINGLE, DrawingTool.CIRCLE, 
+                                               DrawingTool.SQUARE, DrawingTool.SPRAY, 
+                                               DrawingTool.ERASER]:
+            affected_cells = self.drawing_system.get_affected_cells(
+                grid_x, grid_y, self.drawing_system.current_tool,
+                self.drawing_system.brush_size,
+                self.grid_width, self.grid_height
+            )
+            self.apply_drawing(affected_cells)
+    
+    def apply_drawing(self, cells):
+        """Apply drawing to the grid and create visual effects"""
+        for grid_x, grid_y in cells:
+            if 0 <= grid_x < self.grid_width and 0 <= grid_y < self.grid_height:
+                old_state = self.grid[grid_y, grid_x]
+                new_state = 1 if self.drawing_system.draw_mode else 0
+                
+                if old_state != new_state:
+                    self.grid[grid_y, grid_x] = new_state
+                    
+                    # Create visual effects
+                    px = grid_x * self.cell_size + self.cell_size // 2
+                    py = grid_y * self.cell_size + self.cell_size // 2
+                    
+                    if new_state == 1:  # Cell born
+                        for _ in range(2):
+                            self.particles.append(Particle(px, py, "birth"))
+                        self.cell_ages[grid_y, grid_x] = 1
+                        self.sound_system.play_birth()
+                    else:  # Cell died
+                        for _ in range(1):
+                            self.particles.append(Particle(px, py, "death"))
+                        self.cell_ages[grid_y, grid_x] = 0
+                        self.sound_system.play_death()
     
     def run(self):
         self.load_pattern(Pattern.RANDOM)
@@ -595,10 +872,59 @@ class GameOfLife:
                     elif event.key == pygame.K_MINUS:
                         new_volume = max(0.0, self.sound_system.volume - 0.1)
                         self.sound_system.set_volume(new_volume)
+                    
+                    elif event.key == pygame.K_t:
+                        # Cycle through drawing tools
+                        tools = list(DrawingTool)
+                        current_index = tools.index(self.drawing_system.current_tool)
+                        next_index = (current_index + 1) % len(tools)
+                        self.drawing_system.current_tool = tools[next_index]
+                        self.drawing_system.line_start = None  # Reset line tool
+                    
+                    elif event.key == pygame.K_LEFTBRACKET:
+                        # Decrease brush size
+                        self.drawing_system.brush_size = max(1, self.drawing_system.brush_size - 1)
+                    
+                    elif event.key == pygame.K_RIGHTBRACKET:
+                        # Increase brush size
+                        self.drawing_system.brush_size = min(10, self.drawing_system.brush_size + 1)
+                    
+                    # Tool shortcuts
+                    elif event.key == pygame.K_q:
+                        self.drawing_system.current_tool = DrawingTool.SINGLE
+                        self.drawing_system.line_start = None
+                    elif event.key == pygame.K_w:
+                        self.drawing_system.current_tool = DrawingTool.CIRCLE
+                        self.drawing_system.line_start = None
+                    elif event.key == pygame.K_e:
+                        self.drawing_system.current_tool = DrawingTool.SQUARE
+                        self.drawing_system.line_start = None
+                    elif event.key == pygame.K_l:
+                        self.drawing_system.current_tool = DrawingTool.LINE
+                        self.drawing_system.line_start = None
+                    elif event.key == pygame.K_s:
+                        self.drawing_system.current_tool = DrawingTool.SPRAY
+                        self.drawing_system.line_start = None
+                    elif event.key == pygame.K_f:
+                        self.drawing_system.current_tool = DrawingTool.FILL
+                        self.drawing_system.line_start = None
+                    elif event.key == pygame.K_x:
+                        self.drawing_system.current_tool = DrawingTool.ERASER
+                        self.drawing_system.line_start = None
                 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1 and not self.running:
-                        self.handle_mouse_click(event.pos)
+                    if not self.running:  # Only allow drawing when paused
+                        self.drawing_system.is_drawing = True
+                        self.drawing_system.last_pos = None
+                        self.handle_mouse_click(event.pos, event.button)
+                
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    self.drawing_system.is_drawing = False
+                    self.drawing_system.last_pos = None
+                
+                elif event.type == pygame.MOUSEMOTION:
+                    if self.drawing_system.is_drawing:
+                        self.handle_mouse_drag(event.pos)
             
             if self.running:
                 self.update_grid()
