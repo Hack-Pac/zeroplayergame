@@ -223,9 +223,19 @@ export class GameOfLife {
         try {
             const { BattleScenarios } = await import('./battleScenarios.js');
             this.battleScenarios = new BattleScenarios(this);
+            
+            // Make globally accessible for UI integration
+            window.battleScenarios = this.battleScenarios;
+            
             console.log('Battle scenarios initialized');
         } catch (error) {
             console.warn('Failed to load battle scenarios:', error);
+            
+            // Create a fallback empty scenarios object
+            this.battleScenarios = {
+                scenarios: {},
+                loadScenario: () => console.warn('Battle scenarios not available')
+            };
         }
     }
     

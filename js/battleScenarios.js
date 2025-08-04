@@ -170,7 +170,7 @@ export class BattleScenarios {
                 gridSize: { width: 120, height: 80 },
                 teams: [
                     {
-                        team: 1, // Fast reproduction
+                        team: 1, // fast
                         pattern: 'random',
                         randomDensity: 0.3,
                         area: { x: 10, y: 10, width: 20, height: 20 },
@@ -184,7 +184,7 @@ export class BattleScenarios {
                         }
                     },
                     {
-                        team: 2, // Balanced
+                        team: 2, // balanced
                         pattern: 'random',
                         randomDensity: 0.25,
                         area: { x: 50, y: 30, width: 20, height: 20 },
@@ -198,7 +198,7 @@ export class BattleScenarios {
                         }
                     },
                     {
-                        team: 4, // Defensive specialists
+                        team: 4, // defensive
                         pattern: 'random',
                         randomDensity: 0.4,
                         area: { x: 90, y: 10, width: 20, height: 20 },
@@ -257,7 +257,6 @@ export class BattleScenarios {
     }
     
     createScenariosUI() {
-        // Add scenarios section to controls
         const controls = document.querySelector('.controls');
         const scenariosSection = document.createElement('div');
         scenariosSection.className = 'scenarios-section';
@@ -282,7 +281,6 @@ export class BattleScenarios {
         
         controls.appendChild(scenariosSection);
         
-        // Make available globally for button clicks
         window.battleScenarios = this;
     }
     
@@ -290,39 +288,32 @@ export class BattleScenarios {
         const scenario = this.scenarios[scenarioId];
         if (!scenario) return;
         
-        // Show loading indicator
         this.showLoadingIndicator('Loading scenario...');
         
         try {
-            // Resize field if needed
+            // DON'T CHANGE: resizer
             if (scenario.gridSize) {
                 this.game.resizeField(scenario.gridSize.width, scenario.gridSize.height);
             }
             
-            // Clear current state
             this.game.clear();
             
-            // Set up teams
             for (const teamData of scenario.teams) {
-                // Configure team settings
                 if (teamData.config) {
                     this.game.teamConfigManager.setConfig(teamData.team, teamData.config);
                 }
                 
-                // Place team patterns
                 await this.placeTeamPattern(teamData);
             }
             
-            // Enable team mode and update UI
             this.game.teamMode = this.game.hasMultipleTeams();
             document.getElementById('teamStats').style.display = this.game.teamMode ? 'flex' : 'none';
             this.game.updateTeamStats();
             this.game.draw();
             
-            // Show success message
             this.showSuccessMessage(`Loaded scenario: ${scenario.name}`);
             
-            // Auto-start simulation after a brief delay
+            // delay for autostart
             setTimeout(() => {
                 if (!this.game.running) {
                     this.game.togglePlay();
@@ -341,7 +332,6 @@ export class BattleScenarios {
         const { team, pattern, positions, customPattern, randomDensity, area } = teamData;
         
         if (pattern === 'random' && area && randomDensity) {
-            // Place random cells in specified area
             for (let i = area.y; i < area.y + area.height; i++) {
                 for (let j = area.x; j < area.x + area.width; j++) {
                     if (i >= 0 && i < this.game.gridHeight && 
@@ -354,20 +344,38 @@ export class BattleScenarios {
                 }
             }
         } else if (pattern === 'custom' && customPattern) {
-            // Place custom pattern at each position
             for (const pos of positions) {
                 this.placeCustomPattern(customPattern, pos.x, pos.y, team);
             }
         } else {
-            // Load standard pattern at each position
-            const { loadPattern } = await import('./patterns.js');
-            for (const pos of positions) {
-                loadPattern(this.game.grid, pattern, pos.y, pos.x, team);
-                
-                // Set cell ages for proper visual effect
-                this.setCellAgesAroundPosition(pos.x, pos.y, 10);
+            try {
+                const { loadPattern } = await import('./patterns.js');
+                for (const pos of positions) {
+                    loadPattern(this.game.grid, pattern, pos.y, pos.x, team);
+                    
+                    this.setCellAgesAroundPosition(pos.x, pos.y, 10);
+                }
+            } catch (error) {
+                console.warn('Could not load patterns module, using fallback patterns:', error);
+                for (const pos of positions) {
+                    this.placeFallbackPattern(pattern, pos.x, pos.y, team);
+                    this.setCellAgesAroundPosition(pos.x, pos.y, 10);
+                }
             }
         }
+    }
+    
+    placeFallbackPattern(pattern, centerX, centerY, team) {
+        const patterns = {
+            glider: [[0, 1, 0], [0, 0, 1], [1, 1, 1]],
+            blinker: [[1], [1], [1]],
+            block: [[1, 1], [1, 1]],
+            toad: [[0, 1, 1, 1], [1, 1, 1, 0]],
+            beacon: [[1, 1, 0, 0], [1, 1, 0, 0], [0, 0, 1, 1], [0, 0, 1, 1]]
+        };
+        
+        const patternData = patterns[pattern] || patterns.block;
+        this.placeCustomPattern(patternData, centerX, centerY, team);
     }
     
     placeCustomPattern(pattern, centerX, centerY, team) {
@@ -444,7 +452,6 @@ export class BattleScenarios {
     }
     
     exportScenario(name, description) {
-        // Create scenario from current game state
         const scenario = {
             name: name || 'Custom Scenario',
             description: description || 'User created scenario',
@@ -455,7 +462,6 @@ export class BattleScenarios {
             teams: []
         };
         
-        // Extract team data
         const teamData = {};
         for (let i = 0; i < this.game.gridHeight; i++) {
             for (let j = 0; j < this.game.gridWidth; j++) {
@@ -485,7 +491,6 @@ export class BattleScenarios {
         const description = prompt('Enter scenario description:') || '';
         const scenario = this.exportScenario(name, description);
         
-        // Save to localStorage
         const customScenarios = JSON.parse(localStorage.getItem('customScenarios') || '{}');
         const scenarioId = name.toLowerCase().replace(/\s+/g, '-');
         customScenarios[scenarioId] = scenario;
@@ -499,7 +504,6 @@ export class BattleScenarios {
         const customScenarios = JSON.parse(localStorage.getItem('customScenarios') || '{}');
         Object.assign(this.scenarios, customScenarios);
         
-        // Recreate UI to include custom scenarios
         const existingSection = document.querySelector('.scenarios-section');
         if (existingSection) {
             existingSection.remove();

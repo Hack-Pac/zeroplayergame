@@ -11,7 +11,6 @@ export class Camera {
         this.minZoom = CAMERA_CONFIG.minZoom;
         this.maxZoom = CAMERA_CONFIG.maxZoom;
         
-        // Mouse state for panning
         this.mouse = {
             isPanning: false,
             panStartX: 0,
@@ -37,7 +36,7 @@ export class Camera {
         this.x = this.mouse.cameraStartX - dx / this.zoom;
         this.y = this.mouse.cameraStartY - dy / this.zoom;
         
-        return true; // Indicates view needs redraw
+        return true; 
     }
     
     endPan() {
@@ -45,15 +44,12 @@ export class Camera {
     }
     
     handleZoom(deltaY, mouseX, mouseY) {
-        // Get world coordinates before zoom
         const worldX = (mouseX + this.x * this.zoom) / this.zoom;
         const worldY = (mouseY + this.y * this.zoom) / this.zoom;
         
-        // Adjust zoom
         const zoomDelta = deltaY > 0 ? CAMERA_CONFIG.zoomDelta.out : CAMERA_CONFIG.zoomDelta.in;
         this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom * zoomDelta));
         
-        // Adjust camera to keep mouse position fixed
         this.x = worldX - mouseX / this.zoom;
         this.y = worldY - mouseY / this.zoom;
     }

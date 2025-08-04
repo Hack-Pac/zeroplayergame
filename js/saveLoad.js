@@ -27,6 +27,7 @@ export class SaveLoadManager {
         saveLoadSection.innerHTML = `
             <button id="saveBtn" title="Save current game state">💾 Save</button>
             <button id="loadBtn" title="Load saved game state">📂 Load</button>
+            <button id="scenariosBtn" title="Load battle scenarios">⚔️ Scenarios</button>
             <button id="exportBtn" title="Export as JSON">📤 Export</button>
             <button id="importBtn" title="Import from JSON">📥 Import</button>
             <input type="file" id="importFile" accept=".json" style="display: none;">
@@ -39,6 +40,7 @@ export class SaveLoadManager {
         // Event listeners
         document.getElementById('saveBtn').addEventListener('click', () => this.showSaveModal());
         document.getElementById('loadBtn').addEventListener('click', () => this.showLoadModal());
+        document.getElementById('scenariosBtn').addEventListener('click', () => this.showScenariosModal());
         document.getElementById('exportBtn').addEventListener('click', () => this.exportToFile());
         document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
         document.getElementById('importFile').addEventListener('change', (e) => this.importFromFile(e));
@@ -115,6 +117,13 @@ export class SaveLoadManager {
                 <span class="close" id="saveLoadClose">&times;</span>
                 <h2 id="saveLoadTitle">Save Game</h2>
                 
+                <!-- Tabs Navigation -->
+                <div class="modal-tabs">
+                    <button class="tab-btn active" data-tab="saves">💾 Saves</button>
+                    <button class="tab-btn" data-tab="scenarios">⚔️ Scenarios</button>
+                    <button class="tab-btn" data-tab="stats">📊 Stats</button>
+                </div>
+                
                 <!-- Save Section -->
                 <div id="saveSection">
                     <div class="save-input">
@@ -159,18 +168,13 @@ export class SaveLoadManager {
                 </div>
                 
                 <!-- Battle Scenarios Tab -->
-                <div class="modal-tabs">
-                    <button class="tab-btn active" data-tab="saves">💾 Saves</button>
-                    <button class="tab-btn" data-tab="scenarios">⚔️ Scenarios</button>
-                    <button class="tab-btn" data-tab="stats">📊 Stats</button>
-                </div>
-                
                 <div id="scenariosTab" class="tab-content" style="display: none;">
                     <div class="scenarios-preview" id="scenariosPreview">
                         <!-- Battle scenarios will be loaded here -->
                     </div>
                 </div>
                 
+                <!-- Stats Tab -->
                 <div id="statsTab" class="tab-content" style="display: none;">
                     <div class="save-load-stats detailed">
                         <div class="stat-group">
@@ -239,8 +243,31 @@ export class SaveLoadManager {
         document.getElementById('saveLoadTitle').textContent = 'Load Game';
         document.getElementById('saveSection').style.display = 'none';
         document.getElementById('loadSection').style.display = 'block';
+        document.getElementById('scenariosTab').style.display = 'none';
+        document.getElementById('statsTab').style.display = 'none';
+        
+        // Set saves tab as active
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('[data-tab="saves"]').classList.add('active');
         
         this.updateSavesList();
+        this.updateStats();
+        modal.style.display = 'block';
+    }
+    
+    showScenariosModal() {
+        const modal = document.getElementById('saveLoadModal');
+        document.getElementById('saveLoadTitle').textContent = 'Battle Scenarios';
+        document.getElementById('saveSection').style.display = 'none';
+        document.getElementById('loadSection').style.display = 'none';
+        document.getElementById('scenariosTab').style.display = 'block';
+        document.getElementById('statsTab').style.display = 'none';
+        
+        // Set scenarios tab as active
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('[data-tab="scenarios"]').classList.add('active');
+        
+        this.loadScenariosPreview();
         this.updateStats();
         modal.style.display = 'block';
     }
@@ -509,10 +536,11 @@ export class SaveLoadManager {
     }
     
     switchTab(tabName) {
-        // Hide all tab contents
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.style.display = 'none';
-        });
+        // Hide all sections first
+        document.getElementById('saveSection').style.display = 'none';
+        document.getElementById('loadSection').style.display = 'none';
+        document.getElementById('scenariosTab').style.display = 'none';
+        document.getElementById('statsTab').style.display = 'none';
         
         // Remove active class from all tab buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -521,8 +549,13 @@ export class SaveLoadManager {
         
         // Show selected tab and mark button as active
         if (tabName === 'saves') {
-            document.getElementById('saveSection').style.display = 'block';
-            document.getElementById('loadSection').style.display = 'block';
+            // Show the appropriate save/load section based on current modal state
+            const title = document.getElementById('saveLoadTitle').textContent;
+            if (title.includes('Save')) {
+                document.getElementById('saveSection').style.display = 'block';
+            } else {
+                document.getElementById('loadSection').style.display = 'block';
+            }
         } else if (tabName === 'scenarios') {
             document.getElementById('scenariosTab').style.display = 'block';
             this.loadScenariosPreview();
@@ -605,12 +638,56 @@ export class SaveLoadManager {
     }
     
     loadScenariosPreview() {
-        // This will be populated by the battle scenarios system
         const preview = document.getElementById('scenariosPreview');
-        preview.innerHTML = `
-            <p>Battle scenarios will be loaded here when the scenarios system is initialized.</p>
-            <button onclick="window.battleScenarios?.createScenariosUI()">Load Battle Scenarios</button>
-        `;
+        
+        // Check if battle scenarios are available
+        if (this.game.battleScenarios && this.game.battleScenarios.scenarios) {
+            const scenarios = this.game.battleScenarios.scenarios;
+            preview.innerHTML = Object.entries(scenarios).map(([id, scenario]) => `
+                <div class="scenario-card">
+                    <h4>${scenario.name}</h4>
+                    <p>${scenario.description}</p>
+                    <div class="scenario-info">
+                        <span>🏟️ ${scenario.gridSize.width}×${scenario.gridSize.height}</span>
+                        <span>👥 ${scenario.teams.length} teams</span>
+                    </div>
+                    <button class="scenario-btn" onclick="this.loadAndCloseScenario('${id}')">
+                        Load Scenario
+                    </button>
+                </div>
+            `).join('');
+            
+            // Add event listeners to scenario buttons
+            preview.querySelectorAll('.scenario-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    const scenarioId = e.target.getAttribute('onclick').match(/'([^']+)'/)[1];
+                    this.loadScenarioAndClose(scenarioId);
+                };
+            });
+        } else {
+            preview.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #999;">
+                    <p>⚔️ Battle scenarios are loading...</p>
+                    <p>Please wait a moment for the scenarios system to initialize.</p>
+                    <button onclick="window.saveLoadManager?.loadScenariosPreview();" 
+                            style="margin-top: 10px; padding: 8px 16px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Retry Loading Scenarios
+                    </button>
+                    <p style="margin-top: 10px; font-size: 0.9em;">
+                        If scenarios don't load, try refreshing the page.
+                    </p>
+                </div>
+            `;
+        }
+    }
+    
+    loadScenarioAndClose(scenarioId) {
+        if (this.game.battleScenarios && this.game.battleScenarios.loadScenario) {
+            this.game.battleScenarios.loadScenario(scenarioId);
+            this.hideSaveLoadModal();
+        } else {
+            this.showMessage('Scenarios system not available', 'error');
+        }
     }
     
     updateDetailedStats() {

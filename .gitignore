@@ -1,6 +1,5 @@
 .venv
 /venv
-package-lock.json
 node_modules
 *.log
 *.cache
@@ -10,3 +9,5 @@ node_modules
 __pycache__
 *.pyc
 *.pyo
+/.github
+/.vscode
