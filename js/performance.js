@@ -93,7 +93,6 @@ export class PerformanceMonitor {
     }
     
     estimateMemoryUsage() {
-        // Rough estimate based on grid size and other data structures
         const gridMemory = this.game.gridWidth * this.game.gridHeight * 8; // 2 grids * 4 bytes each
         const historyMemory = this.game.analytics ? this.game.analytics.populationHistory[1].length * 40 : 0;
         this.metrics.memoryUsage = Math.round((gridMemory + historyMemory) / 1024 / 1024 * 100) / 100;
