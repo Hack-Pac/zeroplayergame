@@ -53,6 +53,9 @@ export function loadPattern(grid, pattern, centerX, centerY, team = 1) {
     const patternData = PATTERNS[pattern];
     if (!patternData) return;
     
+    // If team is 0, use team 1 instead (0 means empty cell)
+    const actualTeam = team || 1;
+    
     const offsetX = patternData.offset ? patternData.offset.x : 0;
     const offsetY = patternData.offset ? patternData.offset.y : 0;
     
@@ -61,7 +64,7 @@ export function loadPattern(grid, pattern, centerX, centerY, team = 1) {
         const y = centerY + dy + offsetY;
         
         if (x >= 0 && x < grid.length && y >= 0 && y < grid[0].length) {
-            grid[x][y] = team;
+            grid[x][y] = actualTeam;
         }
     });
 }

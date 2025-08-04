@@ -3,89 +3,111 @@
 
 // Mock canvas context
 const mockCanvas = {
-    getContext: jest.fn(() => ({
+    getContext: () => ({
         fillStyle: '',
         strokeStyle: '',
         lineWidth: 1,
-        fillRect: jest.fn(),
-        strokeRect: jest.fn(),
-        clearRect: jest.fn(),
-        beginPath: jest.fn(),
-        moveTo: jest.fn(),
-        lineTo: jest.fn(),
-        stroke: jest.fn(),
-        save: jest.fn(),
-        restore: jest.fn(),
-        scale: jest.fn(),
-        translate: jest.fn()
-    })),
+        fillRect: () => {},
+        strokeRect: () => {},
+        clearRect: () => {},
+        beginPath: () => {},
+        moveTo: () => {},
+        lineTo: () => {},
+        stroke: () => {},
+        save: () => {},
+        restore: () => {},
+        scale: () => {},
+        translate: () => {}
+    }),
     width: 800,
     height: 600,
     style: { cursor: 'default' },
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    getBoundingClientRect: jest.fn(() => ({
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    getBoundingClientRect: () => ({
         left: 0,
         top: 0,
         width: 800,
         height: 600
-    }))
+    })
 };
 
 // Mock DOM methods
 global.document = {
-    getElementById: jest.fn((id) => {
+    getElementById: (id) => {
         if (id === 'gameCanvas') {
             return mockCanvas;
         }
         return {
             textContent: '',
             value: '',
-            style: { display: 'none' },
-            addEventListener: jest.fn(),
-            innerHTML: '',
-            querySelector: jest.fn(),
-            querySelectorAll: jest.fn(() => [])
+            checked: false,
+            style: { display: 'block' },
+            addEventListener: () => {},
+            removeEventListener: () => {}
         };
-    }),
-    querySelector: jest.fn(() => ({
+    },
+    querySelectorAll: () => [],
+    querySelector: () => ({
         textContent: '',
-        style: { display: 'none' }
-    })),
-    querySelectorAll: jest.fn(() => []),
-    createElement: jest.fn(() => ({
-        className: '',
+        value: '',
+        style: { display: 'block' },
+        addEventListener: () => {},
+        classList: { add: () => {}, remove: () => {} }
+    }),
+    createElement: () => ({
         innerHTML: '',
         style: {},
-        appendChild: jest.fn(),
-        addEventListener: jest.fn()
-    })),
+        appendChild: () => {},
+        addEventListener: () => {},
+        classList: { add: () => {}, remove: () => {} }
+    }),
     body: {
-        appendChild: jest.fn()
+        appendChild: () => {}
+    },
+    addEventListener: () => {}
+};
+
+// Mock window
+global.window = {
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    requestAnimationFrame: (callback) => setTimeout(callback, 16),
+    cancelAnimationFrame: () => {},
+    performance: {
+        now: () => Date.now()
     }
 };
 
-global.window = {
-    performance: {
-        now: jest.fn(() => Date.now())
-    },
-    localStorage: {
-        getItem: jest.fn(),
-        setItem: jest.fn(),
-        removeItem: jest.fn()
-    },
-    saveLoadManager: null
+// Mock localStorage
+global.localStorage = {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+    clear: () => {}
 };
 
-// Mock console to reduce test noise
-global.console = {
-    ...console,
-    log: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn()
+// Mock console methods to reduce test noise
+const originalConsoleWarn = console.warn;
+const originalConsoleError = console.error;
+
+console.warn = (...args) => {
+    // Only show warnings that aren't from our expected test scenarios
+    if (!args.some(arg => typeof arg === 'string' && (
+        arg.includes('WebWorker') || 
+        arg.includes('Battle scenarios') ||
+        arg.includes('Advanced AI')
+    ))) {
+        originalConsoleWarn(...args);
+    }
 };
 
-// Reset all mocks before each test
-beforeEach(() => {
-    jest.clearAllMocks();
-});
+console.error = (...args) => {
+    // Only show errors that aren't from our expected test scenarios
+    if (!args.some(arg => typeof arg === 'string' && (
+        arg.includes('WebWorker') || 
+        arg.includes('scenarios')
+    ))) {
+        originalConsoleError(...args);
+    }
+};

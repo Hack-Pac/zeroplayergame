@@ -115,7 +115,7 @@ function computeGameUpdate({ grid, cellAges, teamConfigs, formulas, teamMode, bo
                     }
                 }
             } else {
-                // Cell is dead - check birth
+                // dead again
                 if (neighborData.dominantTeam > 0) {
                     const teamConfig = teamConfigs[neighborData.dominantTeam];
                     const teamFormula = formulas[teamConfig.formula];
@@ -134,7 +134,7 @@ function computeGameUpdate({ grid, cellAges, teamConfigs, formulas, teamMode, bo
                     if (canBeBorn) {
                         const multiplyRate = teamConfig.multiplyRate;
                         
-                        // Fear factor
+                        // fear factor
                         let fearPenalty = 1.0;
                         if (teamConfig.fear > 0.5) {
                             let enemyCount = 0;
@@ -223,7 +223,6 @@ function analyzePatterns({ grid, generation }) {
     const height = grid.length;
     const width = grid[0].length;
     
-    // Count total cells and calculate density
     for (let i = 0; i < height; i++) {
         for (let j = 0; j < width; j++) {
             if (grid[i][j] > 0) {
@@ -234,7 +233,6 @@ function analyzePatterns({ grid, generation }) {
     
     patterns.statistics.density = patterns.statistics.totalCells / (width * height);
     
-    // Detect common patterns
     patterns.stillLifes = detectStillLifes(grid, width, height);
     patterns.oscillators = detectOscillators(grid, width, height, generation);
     patterns.spaceships = detectSpaceships(grid, width, height, generation);
@@ -448,7 +446,7 @@ function floodFill(grid, visited, x, y, width, height) {
     
     visited[y][x] = true;
     
-    // Check 8 directions
+    // directions
     for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
             if (dx !== 0 || dy !== 0) {
@@ -686,7 +684,6 @@ function teamFloodFill(grid, visited, x, y, width, height, team) {
     
     visited[y][x] = true;
     
-    // Check 8 directions
     for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
             if (dx !== 0 || dy !== 0) {
@@ -705,7 +702,6 @@ function calculateEnemyProximity(grid, team, width, height) {
             if (grid[i][j] === team) {
                 teamCells++;
                 
-                // Check proximity to enemies
                 let minEnemyDistance = Infinity;
                 for (let ei = 0; ei < height; ei++) {
                     for (let ej = 0; ej < width; ej++) {
@@ -741,11 +737,10 @@ function calculateVulnerability(grid, team, width, height) {
                 const enemyNeighbors = neighbors.filter(n => n > 0 && n !== team).length;
                 const totalNeighbors = neighbors.filter(n => n > 0).length;
                 
-                // Higher vulnerability if surrounded by enemies or isolated
                 if (totalNeighbors > 0) {
                     vulnerability += enemyNeighbors / totalNeighbors;
                 } else if (sameTeamNeighbors === 0) {
-                    vulnerability += 1; // Isolated cell
+                    vulnerability += 1; // isolated instance
                 }
             }
         }

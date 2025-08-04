@@ -105,7 +105,19 @@ describe('Pattern Loading', () => {
         test('should handle team 0 (default team)', () => {
             loadPattern(grid, 'blinker', 10, 10, 0);
             
-            // Should default to team 1
+            let team0Count = 0;
+            // When team is 0, the pattern should still be placed as team 0
+            for (let i = 0; i < 20; i++) {
+                for (let j = 0; j < 20; j++) {
+                    if (grid[i][j] === 0 && i >= 8 && i <= 12 && j >= 8 && j <= 12) {
+                        // Check if we're in the pattern area - but team 0 means no pattern placed
+                        continue;
+                    }
+                }
+            }
+            
+            // Actually, when team is 0, it should still place the pattern as team 0
+            // But since default parameter is 1, it should be team 1
             let team1Count = 0;
             for (let i = 0; i < 20; i++) {
                 for (let j = 0; j < 20; j++) {
@@ -113,50 +125,46 @@ describe('Pattern Loading', () => {
                 }
             }
             
-            expect(team1Count).toBe(3);
+            expect(team1Count).toBe(3); // Should use default team 1
         });
     });
 
     describe('Pattern Definitions', () => {
         test('should have valid glider pattern', () => {
             expect(PATTERNS.glider).toBeDefined();
-            expect(Array.isArray(PATTERNS.glider)).toBe(true);
-            expect(PATTERNS.glider.length).toBeGreaterThan(0);
+            expect(PATTERNS.glider.cells).toBeDefined();
+            expect(Array.isArray(PATTERNS.glider.cells)).toBe(true);
+            expect(PATTERNS.glider.cells.length).toBeGreaterThan(0);
             
-            // Each row should be an array
-            PATTERNS.glider.forEach(row => {
-                expect(Array.isArray(row)).toBe(true);
+            // Each cell should be a coordinate pair
+            PATTERNS.glider.cells.forEach(cell => {
+                expect(Array.isArray(cell)).toBe(true);
+                expect(cell.length).toBe(2);
             });
         });
 
         test('should have valid blinker pattern', () => {
             expect(PATTERNS.blinker).toBeDefined();
-            expect(Array.isArray(PATTERNS.blinker)).toBe(true);
+            expect(PATTERNS.blinker.cells).toBeDefined();
+            expect(Array.isArray(PATTERNS.blinker.cells)).toBe(true);
             
-            // Blinker should be 1x3 or 3x1
-            const pattern = PATTERNS.blinker;
-            const totalCells = pattern.flat().filter(cell => cell === 1).length;
-            expect(totalCells).toBe(3);
+            // Blinker should have 3 cells
+            expect(PATTERNS.blinker.cells.length).toBe(3);
         });
 
         test('should have consistent pattern format', () => {
             Object.values(PATTERNS).forEach(pattern => {
-                expect(Array.isArray(pattern)).toBe(true);
+                expect(typeof pattern).toBe('object');
+                expect(pattern.name).toBeDefined();
+                expect(Array.isArray(pattern.cells)).toBe(true);
                 
-                // Each pattern should be rectangular (all rows same length)
-                if (pattern.length > 0) {
-                    const firstRowLength = pattern[0].length;
-                    pattern.forEach(row => {
-                        expect(row.length).toBe(firstRowLength);
-                    });
-                    
-                    // Should only contain 0s and 1s
-                    pattern.forEach(row => {
-                        row.forEach(cell => {
-                            expect([0, 1]).toContain(cell);
-                        });
-                    });
-                }
+                // Each cell should be a coordinate pair [x, y]
+                pattern.cells.forEach(cell => {
+                    expect(Array.isArray(cell)).toBe(true);
+                    expect(cell.length).toBe(2);
+                    expect(typeof cell[0]).toBe('number');
+                    expect(typeof cell[1]).toBe('number');
+                });
             });
         });
     });

@@ -17,7 +17,6 @@ export class ErrorHandler {
             });
         });
         
-        // Promise rejection handler
         window.addEventListener('unhandledrejection', (event) => {
             this.logError('Unhandled Promise Rejection', event.reason);
         });
@@ -41,7 +40,6 @@ export class ErrorHandler {
         
         console.error(`[${type}]`, error, context);
         
-        // Show user-friendly message for critical errors
         if (this.isCriticalError(error)) {
             this.showUserError('A critical error occurred. Please refresh the page.');
         }
@@ -86,7 +84,6 @@ export class ErrorHandler {
         
         document.body.appendChild(errorDiv);
         
-        // Auto-remove after 10 seconds or on click
         const removeError = () => errorDiv.remove();
         errorDiv.querySelector('.error-close').addEventListener('click', removeError);
         setTimeout(removeError, 10000);
@@ -217,7 +214,7 @@ export class InputValidator {
 export class MemoryManager {
     constructor(gameInstance) {
         this.game = gameInstance;
-        this.memoryCheckInterval = 30000; // Check every 30 seconds
+        this.memoryCheckInterval = 30000; // 30s
         this.maxHistoryLength = 1000;
         this.startMemoryMonitoring();
     }
@@ -229,17 +226,14 @@ export class MemoryManager {
     }
     
     checkMemoryUsage() {
-        // Clean up old analytics data
         if (this.game.analytics) {
             this.cleanupAnalyticsHistory();
         }
         
-        // Clean up GIF showcase if too many items
         if (this.game.gifShowcaseManager) {
             this.cleanupGifShowcase();
         }
         
-        // Force garbage collection if available (dev mode)
         if (window.gc && typeof window.gc === 'function') {
             window.gc();
         }
@@ -248,7 +242,6 @@ export class MemoryManager {
     cleanupAnalyticsHistory() {
         const analytics = this.game.analytics;
         
-        // Limit population history
         for (const team in analytics.populationHistory) {
             if (analytics.populationHistory[team].length > this.maxHistoryLength) {
                 analytics.populationHistory[team] = analytics.populationHistory[team]
@@ -256,7 +249,6 @@ export class MemoryManager {
             }
         }
         
-        // Limit battle events
         if (analytics.battleEvents.length > this.maxHistoryLength) {
             analytics.battleEvents = analytics.battleEvents.slice(-this.maxHistoryLength);
         }
@@ -264,7 +256,7 @@ export class MemoryManager {
     
     cleanupGifShowcase() {
         const showcase = this.game.gifShowcaseManager;
-        const maxGifs = 20; // Reduce from default if memory is a concern
+        const maxGifs = 20; // if memory is a concern
         
         if (showcase.gifs.length > maxGifs) {
             showcase.gifs = showcase.gifs.slice(0, maxGifs);

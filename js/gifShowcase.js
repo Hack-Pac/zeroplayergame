@@ -4,7 +4,8 @@ export class GifShowcaseManager {
     constructor() {
         this.gifs = [];
         this.storageKey = 'gameOfLifeGifShowcase';
-        this.maxGifs = 50; // Maximum number of GIFs to store
+        this.maxGifs = 25; // max num gifs -- if error, increase
+        // this is lowered to improve memory efficiency
         
         this.initializeEventListeners();
         this.loadFromStorage();
@@ -16,13 +17,11 @@ export class GifShowcaseManager {
         const closeBtn = modal.querySelector('.close');
         const sortSelect = document.getElementById('sortSelect');
         
-        // Open modal
         showcaseBtn.addEventListener('click', () => {
             modal.style.display = 'block';
             this.renderGallery();
         });
         
-        // Close modal
         closeBtn.addEventListener('click', () => {
             modal.style.display = 'none';
         });
@@ -33,7 +32,6 @@ export class GifShowcaseManager {
             }
         });
         
-        // Sort change
         sortSelect.addEventListener('change', () => {
             this.renderGallery();
         });
@@ -56,7 +54,6 @@ export class GifShowcaseManager {
             localStorage.setItem(this.storageKey, JSON.stringify(this.gifs));
         } catch (error) {
             console.error('Error saving GIFs to storage:', error);
-            // If storage is full, remove oldest GIFs
             if (error.name === 'QuotaExceededError') {
                 this.gifs = this.gifs.slice(-Math.floor(this.maxGifs / 2));
                 this.saveToStorage();
@@ -66,7 +63,7 @@ export class GifShowcaseManager {
     
     
     async addGif(gifData) {
-        // Generate thumbnail
+        // generate gif appearance
         const thumbnail = await this.generateThumbnail(gifData.dataUrl);
         
         const gifEntry = {
@@ -80,10 +77,8 @@ export class GifShowcaseManager {
             frameRate: gifData.frameRate || 'Unknown'
         };
         
-        // Add to beginning of array
         this.gifs.unshift(gifEntry);
         
-        // Limit number of GIFs
         if (this.gifs.length > this.maxGifs) {
             this.gifs = this.gifs.slice(0, this.maxGifs);
         }
@@ -99,11 +94,9 @@ export class GifShowcaseManager {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 
-                // Create thumbnail at 150x150
                 canvas.width = 150;
                 canvas.height = 150;
                 
-                // Calculate dimensions to maintain aspect ratio
                 const aspectRatio = img.width / img.height;
                 let drawWidth = canvas.width;
                 let drawHeight = canvas.height;
@@ -125,7 +118,7 @@ export class GifShowcaseManager {
             };
             
             img.onerror = () => {
-                // Return a placeholder if thumbnail generation fails
+                // debug placeholder
                 resolve('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzk5OSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiPkdJRjwvdGV4dD48L3N2Zz4=');
             };
             
@@ -162,7 +155,7 @@ export class GifShowcaseManager {
         const emptyMessage = document.getElementById('emptyShowcase');
         const gifCount = document.getElementById('gifCount');
         
-        // Update count
+        // count
         gifCount.textContent = `${this.gifs.length} GIF${this.gifs.length !== 1 ? 's' : ''} in showcase`;
         
         if (this.gifs.length === 0) {
@@ -174,13 +167,11 @@ export class GifShowcaseManager {
         gallery.style.display = 'grid';
         emptyMessage.style.display = 'none';
         
-        // Sort GIFs
         this.sortGifs();
         
-        // Clear gallery
+        // CLEAR gallery
         gallery.innerHTML = '';
         
-        // Render each GIF
         this.gifs.forEach(gif => {
             const gifElement = this.createGifElement(gif);
             gallery.appendChild(gifElement);
@@ -234,9 +225,7 @@ export class GifShowcaseManager {
         link.click();
     }
     
-    // Method to be called from GIF recorder
     async saveFromRecorder(blob, settings) {
-        // Create a custom dialog for title and description
         const title = prompt('Enter a title for this GIF:', `Game of Life - ${new Date().toLocaleDateString()}`);
         
         if (!title) {
