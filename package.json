@@ -1,0 +1,39 @@
+{
+  "name": "zeroplayergame",
+  "version": "1.0.0",
+  "description": "A multiplayer implementation of Conway's Game of Life with team-based gameplay, GIF recording, and community showcase features.",
+  "main": "app.py",
+  "type": "module",
+  "scripts": {
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
+    "lint": "eslint js/**/*.js --ignore-pattern 'js/vendor/**'",
+    "lint:fix": "eslint js/**/*.js --ignore-pattern 'js/vendor/**' --fix",
+    "format": "prettier --write js/**/*.js",
+    "dev": "python app.py",
+    "start": "python app.py",
+    "build": "echo 'No build step required for this project'",
+    "validate": "npm run lint && npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hack-Pac/zeroplayergame.git"
+  },
+  "keywords": [
+    "conway",
+    "game-of-life",
+    "cellular-automata",
+    "multiplayer",
+    "javascript",
+    "canvas",
+    "simulation"
+  ],
+  "author": "Hack-Pac",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.1.0"
+  }
+}

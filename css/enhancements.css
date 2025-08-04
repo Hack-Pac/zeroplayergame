@@ -1,0 +1,347 @@
+/* Enhanced CSS for new features */
+
+/* Performance Panel */
+.performance-panel {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px;
+    color: white;
+    font-family: monospace;
+    font-size: 12px;
+    z-index: 1000;
+    min-width: 200px;
+}
+
+.performance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.performance-header h4 {
+    margin: 0;
+    color: #4CAF50;
+}
+
+.performance-header button {
+    background: #333;
+    border: 1px solid #555;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+.performance-content .metric {
+    display: flex;
+    justify-content: space-between;
+    margin: 2px 0;
+}
+
+/* Save/Load Interface */
+.save-load-section {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.save-input {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.save-input input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #222;
+    color: white;
+}
+
+.saves-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #111;
+}
+
+.save-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    color: white;
+}
+
+.save-item:hover {
+    background: #222;
+}
+
+.save-info {
+    flex: 1;
+}
+
+.save-name {
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+.save-details {
+    font-size: 12px;
+    color: #888;
+}
+
+.save-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.save-actions button {
+    padding: 5px 10px;
+    font-size: 12px;
+    border: 1px solid #333;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.load-save-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.delete-save-btn {
+    background: #f44336;
+    color: white;
+}
+
+.no-saves {
+    padding: 20px;
+    text-align: center;
+    color: #888;
+}
+
+.save-load-stats {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #333;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    font-size: 12px;
+    color: #888;
+}
+
+/* Undo/Redo Interface */
+.undo-redo-section {
+    display: flex;
+    gap: 5px;
+}
+
+.undo-redo-section button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Keyboard Shortcuts Help */
+.shortcuts-help-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.shortcuts-help-content {
+    background: #1a1a1a;
+    border: 2px solid #333;
+    border-radius: 8px;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: white;
+}
+
+.shortcuts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #333;
+}
+
+.shortcuts-header h3 {
+    margin: 0;
+    color: #4CAF50;
+}
+
+.shortcuts-close {
+    background: #333;
+    border: 1px solid #555;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.shortcuts-body {
+    padding: 20px;
+}
+
+.shortcuts-category {
+    margin-bottom: 25px;
+}
+
+.shortcuts-category h4 {
+    margin: 0 0 10px 0;
+    color: #4CAF50;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+.shortcuts-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 8px;
+}
+
+.shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.shortcut-key {
+    background: #333;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #4CAF50;
+    border: 1px solid #555;
+}
+
+.shortcut-desc {
+    color: #ccc;
+    font-size: 13px;
+}
+
+/* Error Notifications */
+.error-notification {
+    animation: slideIn 0.3s ease;
+}
+
+.error-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.error-icon {
+    font-size: 18px;
+}
+
+.error-close {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    margin-left: 10px;
+}
+
+.save-message {
+    animation: slideIn 0.3s ease;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .performance-panel {
+        position: relative;
+        top: auto;
+        left: auto;
+        margin: 10px;
+        width: calc(100% - 20px);
+    }
+    
+    .shortcuts-help-content {
+        margin: 10px;
+        max-width: none;
+        width: calc(100% - 20px);
+    }
+    
+    .shortcuts-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .save-load-section {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .save-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .save-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+    button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .shortcut-item {
+        padding: 10px 0;
+    }
+    
+    .save-item {
+        padding: 15px;
+    }
+}

@@ -4,7 +4,7 @@ import {
     CANVAS_WIDTH, CANVAS_HEIGHT, CELL_SIZE, 
     DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT, 
     FADE_IN_DURATION, DEFAULT_SPEED, 
-    TEAM_COLORS, GAME_FORMULAS 
+    TEAM_COLORS, GAME_FORMULAS, FIELD_SIZE 
 } from './constants.js';
 import { Camera } from './camera.js';
 import { TeamConfigManager } from './teamConfig.js';
@@ -15,6 +15,10 @@ import { PIXEL_FONT } from './pixelFont.js';
 import { loadPattern } from './patterns.js';
 import { AdvancedAI } from './advancedAI.js';
 import { BattleAnalytics } from './analytics.js';
+import { PerformanceMonitor, SpatialOptimization } from './performance.js';
+import { SaveLoadManager, UndoRedoManager } from './saveLoad.js';
+import { ErrorHandler, InputValidator, MemoryManager } from './errorHandling.js';
+import { KeyboardShortcuts, TouchSupport } from './keyboard.js';
 
 export class GameOfLife {
     constructor() {
@@ -36,6 +40,42 @@ export class GameOfLife {
         this.helpManager = new HelpManager();
         this.advancedAI = new AdvancedAI(this);
         this.analytics = new BattleAnalytics(this);
+        
+        // New enhanced components - wrap in try-catch for debugging
+        try {
+            this.errorHandler = new ErrorHandler();
+            this.performanceMonitor = new PerformanceMonitor(this);
+            this.spatialOptimization = new SpatialOptimization(this);
+            this.saveLoadManager = new SaveLoadManager(this);
+            this.undoRedoManager = new UndoRedoManager(this);
+            this.keyboardShortcuts = new KeyboardShortcuts(this);
+            console.log('Enhanced components initialized successfully');
+        } catch (error) {
+            console.error('Error initializing enhanced components:', error);
+            // Fallback initialization
+            this.errorHandler = { logError: () => {}, logWarning: () => {} };
+            this.performanceMonitor = { startUpdate: () => {}, endUpdate: () => {}, update: () => {}, startRender: () => {}, endRender: () => {} };
+            this.spatialOptimization = { updateActiveRegions: () => {}, getActiveRegionBounds: () => null };
+            this.saveLoadManager = { init: () => {} };
+            this.undoRedoManager = { captureState: () => {} };
+            this.keyboardShortcuts = { init: () => {} };
+        }
+        
+        // Initialize WebWorker for performance
+        this.initWebWorker();
+        
+        // Battle scenarios integration - make it optional
+        try {
+            this.initBattleScenarios();
+            this.touchSupport = new TouchSupport(this);
+            this.memoryManager = new MemoryManager(this);
+            console.log('Optional components initialized');
+        } catch (error) {
+            console.error('Error initializing optional components:', error);
+            // Create fallback objects
+            this.touchSupport = { init: () => {} };
+            this.memoryManager = { init: () => {} };
+        }
         
         // Game state
         this.grid = this.createGrid();
@@ -127,6 +167,66 @@ export class GameOfLife {
         this.updateZoomInfo();
         document.getElementById('fieldWidth').value = this.gridWidth;
         document.getElementById('fieldHeight').value = this.gridHeight;
+    }
+    
+    // Initialize WebWorker for performance
+    initWebWorker() {
+        // Temporarily disable WebWorker for debugging
+        console.log('WebWorker disabled for debugging - using main thread');
+        this.workerEnabled = false;
+        
+        /* 
+        try {
+            this.worker = new Worker('/js/gameWorker.js');
+            this.workerEnabled = true;
+            
+            this.worker.onmessage = (e) => {
+                this.handleWorkerMessage(e.data);
+            };
+            
+            this.worker.onerror = (error) => {
+                console.warn('WebWorker error, falling back to main thread:', error);
+                this.workerEnabled = false;
+            };
+            
+            console.log('WebWorker initialized successfully');
+        } catch (error) {
+            console.warn('WebWorker not available, using main thread:', error);
+            this.workerEnabled = false;
+        }
+        */
+    }
+    
+    // Handle WebWorker messages
+    handleWorkerMessage(data) {
+        switch (data.type) {
+            case 'update-complete':
+                this.handleWorkerUpdate(data.result);
+                break;
+            case 'batch-progress':
+                this.handleBatchProgress(data.result);
+                break;
+            case 'batch-complete':
+                this.handleBatchComplete(data.result);
+                break;
+            case 'battle-analysis-complete':
+                this.analytics.updateBattleAnalysis(data.result);
+                break;
+            case 'heatmap-complete':
+                this.performanceMonitor.updateHeatmap(data.result);
+                break;
+        }
+    }
+    
+    // Initialize battle scenarios
+    async initBattleScenarios() {
+        try {
+            const { BattleScenarios } = await import('./battleScenarios.js');
+            this.battleScenarios = new BattleScenarios(this);
+            console.log('Battle scenarios initialized');
+        } catch (error) {
+            console.warn('Failed to load battle scenarios:', error);
+        }
     }
     
     handleMouseDown(event) {
@@ -247,133 +347,248 @@ export class GameOfLife {
     }
     
     update() {
-        const newGrid = this.createGrid();
-        const newCellAges = this.createGrid();
+        console.log('update() called');
+        // Capture state for undo system
+        this.undoRedoManager.captureState('simulation_step');
         
-        // Calculate team statistics for intelligent behavior
-        let teamSizes = { 1: 0, 2: 0, 3: 0, 4: 0 };
-        let teamPositions = { 1: [], 2: [], 3: [], 4: [] };
+        // Performance monitoring
+        this.performanceMonitor.startUpdate();
         
-        if (this.teamMode) {
-            for (let i = 0; i < this.gridHeight; i++) {
-                for (let j = 0; j < this.gridWidth; j++) {
-                    const team = this.grid[i][j];
-                    if (team > 0) {
-                        teamSizes[team]++;
-                        teamPositions[team].push({ x: j, y: i });
+        // Use WebWorker for complex computations if available and beneficial
+        if (this.workerEnabled && this.shouldUseWorker()) {
+            console.log('Using WebWorker for update');
+            this.updateWithWorker();
+            return;
+        }
+        
+        // Fallback to main thread computation
+        console.log('Using main thread for update');
+        this.updateMainThread();
+    }
+    
+    shouldUseWorker() {
+        // Use worker for large grids or when multiple teams are active
+        const totalCells = this.gridWidth * this.gridHeight;
+        const activeTeams = this.hasMultipleTeams() ? this.getActiveTeamCount() : 1;
+        
+        return totalCells > 5000 || (activeTeams > 2 && totalCells > 2000);
+    }
+    
+    updateWithWorker() {
+        // Send game state to worker for computation
+        this.worker.postMessage({
+            type: 'compute-update',
+            data: {
+                grid: this.grid,
+                cellAges: this.cellAges,
+                teamConfigs: this.teamConfigManager.getAllConfigs(),
+                formulas: this.formulas,
+                teamMode: this.teamMode,
+                bounds: this.spatialOptimization.getActiveRegionBounds()
+            }
+        });
+    }
+    
+    handleWorkerUpdate(result) {
+        // Apply worker computation results
+        this.grid = result.newGrid;
+        this.cellAges = result.newCellAges;
+        this.generation++;
+        
+        // Update UI and analytics
+        this.updateInfo();
+        this.draw();
+        this.updateTeamStats();
+        this.analytics.update();
+        this.performanceMonitor.endUpdate();
+        this.performanceMonitor.update();
+    }
+    
+    handleBatchProgress(result) {
+        // Update UI during batch processing
+        this.grid = result.newGrid;
+        this.cellAges = result.newCellAges;
+        this.generation = result.generation;
+        
+        this.updateInfo();
+        this.draw();
+        
+        // Show progress
+        this.showBatchProgress(result.progress, result.processingTime);
+    }
+    
+    handleBatchComplete(result) {
+        // Batch processing complete
+        this.hideBatchProgress();
+        this.performanceMonitor.logBatchPerformance(result.totalTime, result.generationsProcessed);
+    }
+    
+    updateMainThread() {
+        try {
+            console.log('updateMainThread() starting...');
+            
+            const newGrid = this.createGrid();
+            const newCellAges = this.createGrid();
+            
+            // Update spatial optimization
+            this.spatialOptimization.updateActiveRegions();
+            const bounds = this.spatialOptimization.getActiveRegionBounds();
+            
+            // Calculate team statistics for intelligent behavior
+            let teamSizes = { 1: 0, 2: 0, 3: 0, 4: 0 };
+            let teamPositions = { 1: [], 2: [], 3: [], 4: [] };
+            
+            if (this.teamMode) {
+                for (let i = 0; i < this.gridHeight; i++) {
+                    for (let j = 0; j < this.gridWidth; j++) {
+                        const team = this.grid[i][j];
+                        if (team > 0) {
+                            teamSizes[team]++;
+                            teamPositions[team].push({ x: j, y: i });
+                        }
                     }
                 }
             }
-        }
-        
-        // Apply game rules
-        for (let i = 0; i < this.gridHeight; i++) {
-            for (let j = 0; j < this.gridWidth; j++) {
-                const neighborData = this.countNeighbors(j, i);
-                const currentTeam = this.grid[i][j];
-                
-                if (currentTeam > 0) {
-                    // Cell is alive - check survival rules
-                    const teamConfig = this.teamConfigManager.getConfig(currentTeam);
-                    const teamFormula = this.formulas[teamConfig.formula];
-                    let survives = teamFormula.survive.includes(neighborData.count);
+            
+            // Apply game rules (optimized for active regions)
+            const startY = bounds ? bounds.startY : 0;
+            const endY = bounds ? bounds.endY : this.gridHeight;
+            const startX = bounds ? bounds.startX : 0;
+            const endX = bounds ? bounds.endX : this.gridWidth;
+            
+            console.log(`Processing cells from (${startX},${startY}) to (${endX},${endY})`);
+            
+            for (let i = startY; i < endY; i++) {
+                for (let j = startX; j < endX; j++) {
+                    const neighborData = this.countNeighbors(j, i);
+                    const currentTeam = this.grid[i][j];
                     
-                    // Herd rate affects survival
-                    if (survives && teamConfig.herdRate > 0.5) {
-                        const teamNeighborRatio = neighborData.teamCounts[currentTeam] / neighborData.count;
-                        const herdBonus = (teamConfig.herdRate - 0.5) * 2;
-                        survives = survives || (Math.random() < teamNeighborRatio * herdBonus * 0.3);
-                    }
-                    
-                    if (survives) {
-                        // Apply aggressiveness factor for team conversion
-                        if (this.teamMode && neighborData.dominantTeam > 0 && 
-                            neighborData.dominantTeam !== currentTeam) {
-                            
-                            const aggressiveness = this.teamConfigManager.getConfig(neighborData.dominantTeam).aggressiveness;
-                            const threshold = Math.max(1, Math.floor(2 * (1 - aggressiveness) + 1));
-                            
-                            if (neighborData.teamCounts[neighborData.dominantTeam] >= threshold) {
-                                newGrid[i][j] = neighborData.dominantTeam;
-                                newCellAges[i][j] = 0;
+                    if (currentTeam > 0) {
+                        // Cell is alive - check survival rules
+                        const teamConfig = this.teamConfigManager.getConfig(currentTeam);
+                        const teamFormula = this.formulas[teamConfig.formula];
+                        let survives = teamFormula.survive.includes(neighborData.count);
+                        
+                        // Herd rate affects survival
+                        if (survives && teamConfig.herdRate > 0.5) {
+                            const teamNeighborRatio = neighborData.teamCounts[currentTeam] / neighborData.count;
+                            const herdBonus = (teamConfig.herdRate - 0.5) * 2;
+                            survives = survives || (Math.random() < teamNeighborRatio * herdBonus * 0.3);
+                        }
+                        
+                        if (survives) {
+                            // Apply aggressiveness factor for team conversion
+                            if (this.teamMode && neighborData.dominantTeam > 0 && 
+                                neighborData.dominantTeam !== currentTeam) {
+                                
+                                const aggressiveness = this.teamConfigManager.getConfig(neighborData.dominantTeam).aggressiveness;
+                                const threshold = Math.max(1, Math.floor(2 * (1 - aggressiveness) + 1));
+                                
+                                if (neighborData.teamCounts[neighborData.dominantTeam] >= threshold) {
+                                    newGrid[i][j] = neighborData.dominantTeam;
+                                    newCellAges[i][j] = 0;
+                                } else {
+                                    newGrid[i][j] = currentTeam;
+                                    newCellAges[i][j] = Math.min(this.cellAges[i][j] + 1, this.fadeInDuration);
+                                }
                             } else {
                                 newGrid[i][j] = currentTeam;
                                 newCellAges[i][j] = Math.min(this.cellAges[i][j] + 1, this.fadeInDuration);
                             }
-                        } else {
-                            newGrid[i][j] = currentTeam;
-                            newCellAges[i][j] = Math.min(this.cellAges[i][j] + 1, this.fadeInDuration);
                         }
-                    }
-                } else {
-                    // Cell is dead - check birth rules
-                    if (neighborData.dominantTeam > 0) {
-                        const teamConfig = this.teamConfigManager.getConfig(neighborData.dominantTeam);
-                        const teamFormula = this.formulas[teamConfig.formula];
-                        let canBeBorn = teamFormula.birth.includes(neighborData.count);
-                        
-                        // Intelligence affects birth patterns
-                        if (!canBeBorn && teamConfig.intelligence > 0.7) {
-                            const nearBirth = teamFormula.birth.some(b => 
-                                Math.abs(b - neighborData.count) === 1
-                            );
-                            if (nearBirth && Math.random() < (teamConfig.intelligence - 0.7) * 2) {
-                                canBeBorn = true;
-                            }
-                        }
-                        
-                        if (canBeBorn) {
-                            const multiplyRate = teamConfig.multiplyRate;
+                    } else {
+                        // Cell is dead - check birth rules
+                        if (neighborData.dominantTeam > 0) {
+                            const teamConfig = this.teamConfigManager.getConfig(neighborData.dominantTeam);
+                            const teamFormula = this.formulas[teamConfig.formula];
+                            let canBeBorn = teamFormula.birth.includes(neighborData.count);
                             
-                            // Fear factor affects birth
-                            let fearPenalty = 1.0;
-                            if (teamConfig.fear > 0.5) {
-                                let enemyCount = 0;
-                                for (let t = 1; t <= 4; t++) {
-                                    if (t !== neighborData.dominantTeam && neighborData.teamCounts[t] > 0) {
-                                        enemyCount += neighborData.teamCounts[t];
+                            // Intelligence affects birth patterns
+                            if (!canBeBorn && teamConfig.intelligence > 0.7) {
+                                const nearBirth = teamFormula.birth.some(b => 
+                                    Math.abs(b - neighborData.count) === 1
+                                );
+                                if (nearBirth && Math.random() < (teamConfig.intelligence - 0.7) * 2) {
+                                    canBeBorn = true;
+                                }
+                            }
+                            
+                            if (canBeBorn) {
+                                const multiplyRate = teamConfig.multiplyRate;
+                                
+                                // Fear factor affects birth
+                                let fearPenalty = 1.0;
+                                if (teamConfig.fear > 0.5) {
+                                    let enemyCount = 0;
+                                    for (let t = 1; t <= 4; t++) {
+                                        if (t !== neighborData.dominantTeam && neighborData.teamCounts[t] > 0) {
+                                            enemyCount += neighborData.teamCounts[t];
+                                        }
+                                    }
+                                    if (enemyCount > 0) {
+                                        fearPenalty = 1 - (teamConfig.fear - 0.5) * (enemyCount / neighborData.count) * 0.5;
                                     }
                                 }
-                                if (enemyCount > 0) {
-                                    fearPenalty = 1 - (teamConfig.fear - 0.5) * (enemyCount / neighborData.count) * 0.5;
+                                
+                                const birthChance = Math.random();
+                                if (birthChance < multiplyRate * fearPenalty) {
+                                    newGrid[i][j] = neighborData.dominantTeam;
+                                    newCellAges[i][j] = 0;
                                 }
-                            }
-                            
-                            const birthChance = Math.random();
-                            if (birthChance < multiplyRate * fearPenalty) {
-                                newGrid[i][j] = neighborData.dominantTeam;
-                                newCellAges[i][j] = 0;
                             }
                         }
                     }
                 }
             }
-        }
-        
-        // Apply intelligence-based movement for cells at the edge of groups
-        if (this.teamMode) {
-            // Update team sizes for AI system
-            this.teamSizes = teamSizes;
             
-            // Run advanced AI system
-            this.advancedAI.update(newGrid, teamSizes, teamPositions);
+            // Apply intelligence-based movement for cells at the edge of groups
+            if (this.teamMode) {
+                // Update team sizes for AI system
+                this.teamSizes = teamSizes;
+                
+                // Run advanced AI system
+                try {
+                    this.advancedAI.update(newGrid, teamSizes, teamPositions);
+                } catch (error) {
+                    console.warn('Advanced AI error:', error);
+                }
+                
+                // Apply traditional intelligent behavior
+                try {
+                    this.applyIntelligentBehavior(newGrid, teamSizes, teamPositions);
+                } catch (error) {
+                    console.warn('Intelligent behavior error:', error);
+                }
+            }
             
-            // Apply traditional intelligent behavior
-            this.applyIntelligentBehavior(newGrid, teamSizes, teamPositions);
-        }
-        
-        this.grid = newGrid;
-        this.cellAges = newCellAges;
-        this.generation++;
-        this.updateInfo();
-        if (this.teamMode) this.updateTeamStats();
-        
-        // Update analytics
-        this.analytics.update();
-        
-        // Capture frame if recording GIF
-        if (this.gifRecorder.isRecording()) {
-            this.gifRecorder.captureFrame();
+            this.grid = newGrid;
+            this.cellAges = newCellAges;
+            this.generation++;
+            this.updateInfo();
+            if (this.teamMode) this.updateTeamStats();
+            
+            // Update analytics
+            try {
+                this.analytics.update();
+            } catch (error) {
+                console.warn('Analytics update error:', error);
+            }
+            
+            // Update performance monitoring
+            this.performanceMonitor.endUpdate();
+            this.performanceMonitor.update();
+            
+            // Capture frame if recording GIF
+            if (this.gifRecorder.isRecording()) {
+                this.gifRecorder.captureFrame();
+            }
+            
+            console.log('updateMainThread() completed successfully');
+        } catch (error) {
+            console.error('Error in updateMainThread:', error);
+            // Still increment generation to avoid infinite loop
+            this.generation++;
+            this.updateInfo();
         }
     }
     
@@ -533,6 +748,9 @@ export class GameOfLife {
     }
     
     draw() {
+        // Performance monitoring
+        this.performanceMonitor.startRender();
+        
         // Clear canvas
         this.ctx.fillStyle = '#000';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -596,6 +814,9 @@ export class GameOfLife {
         
         // Restore context state
         this.ctx.restore();
+        
+        // End performance monitoring
+        this.performanceMonitor.endRender();
     }
     
     loadPattern(pattern) {
@@ -633,18 +854,23 @@ export class GameOfLife {
     }
     
     togglePlay() {
+        console.log('togglePlay called, current running state:', this.running);
         this.running = !this.running;
         document.getElementById('playPauseBtn').textContent = this.running ? 'Pause' : 'Play';
         this.updateInfo();
         
+        console.log('New running state:', this.running);
         if (this.running) {
+            console.log('Starting game loop...');
             this.run();
         }
     }
     
     run() {
+        console.log('run() called, running state:', this.running);
         if (!this.running) return;
         
+        console.log('Calling update() and draw()...');
         this.update();
         this.draw();
         
